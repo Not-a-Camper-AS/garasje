@@ -57,23 +57,32 @@ const TaskItem = ({
   date, 
   icon, 
   color = "bg-amber-50",
-  textColor = "text-amber-700"
+  textColor = "text-amber-700",
+  taskId,
+  vehicleId
 }: { 
   title: string; 
   date: string;
   icon: React.ReactNode;
   color?: string;
   textColor?: string;
+  taskId: string;
+  vehicleId: string;
 }) => (
-  <Pressable className="flex-row items-center py-4 border-b border-gray-100 active:bg-gray-50">
-    <View className={`w-10 h-10 rounded-lg ${color} items-center justify-center mr-4`}>
-      {icon}
-    </View>
-    <Text className="text-base font-medium text-gray-900 flex-1">{title}</Text>
-    <View className={`${color} rounded-full px-3 py-1.5`}>
-      <Text className={`text-sm ${textColor}`}>{date}</Text>
-    </View>
-  </Pressable>
+  <View className="border-b border-gray-100">
+    <Pressable 
+      className="flex-row items-center py-3 px-4 active:bg-gray-50 active:rounded-xl my-0.5"
+      onPress={() => router.push(`/vehicle/${vehicleId}/tasks/${taskId}`)}
+    >
+      <View className={`w-10 h-10 rounded-lg ${color} items-center justify-center mr-4`}>
+        {icon}
+      </View>
+      <Text className="text-base font-medium text-gray-900 flex-1">{title}</Text>
+      <View className={`${color} rounded-full px-3 py-1.5`}>
+        <Text className={`text-sm ${textColor}`}>{date}</Text>
+      </View>
+    </Pressable>
+  </View>
 );
 
 export default function VehicleTasks() {
@@ -126,6 +135,8 @@ export default function VehicleTasks() {
               icon={task.icon}
               color="bg-amber-50"
               textColor="text-amber-700"
+              taskId={task.id}
+              vehicleId={id as string}
             />
           ))}
 

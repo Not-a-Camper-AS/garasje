@@ -167,27 +167,28 @@ export default function NewTask() {
             {showPriorityPicker && (
               <View className="bg-white rounded-lg mt-1 border border-gray-200 shadow-sm overflow-hidden">
                 {priorityOptions.map(priority => (
-                  <Pressable 
-                    key={priority.id}
-                    onPress={() => {
-                      setSelectedPriority(priority.name);
-                      setShowPriorityPicker(false);
-                    }}
-                    className={`px-4 py-3 border-b border-gray-100 flex-row items-center justify-between ${
-                      selectedPriority === priority.name ? 'bg-gray-50' : ''
-                    }`}
-                  >
-                    <View className="flex-row items-center">
-                      <View 
-                        style={{ backgroundColor: priority.color }}
-                        className="w-4 h-4 rounded-full mr-2"
-                      />
-                      <Text className="text-gray-900">{priority.name}</Text>
-                    </View>
-                    {selectedPriority === priority.name && (
-                      <Check size={18} color="#10B981" />
-                    )}
-                  </Pressable>
+                  <View key={priority.id} className="border-b border-gray-100">
+                    <Pressable 
+                      onPress={() => {
+                        setSelectedPriority(priority.name);
+                        setShowPriorityPicker(false);
+                      }}
+                      className={`px-4 py-3 flex-row items-center justify-between active:bg-gray-50 active:rounded-xl my-0.5 ${
+                        selectedPriority === priority.name ? 'bg-gray-50' : ''
+                      }`}
+                    >
+                      <View className="flex-row items-center">
+                        <View 
+                          style={{ backgroundColor: priority.color }}
+                          className="w-4 h-4 rounded-full mr-2"
+                        />
+                        <Text className="text-gray-900">{priority.name}</Text>
+                      </View>
+                      {selectedPriority === priority.name && (
+                        <Check size={18} color="#10B981" />
+                      )}
+                    </Pressable>
+                  </View>
                 ))}
               </View>
             )}
@@ -211,21 +212,22 @@ export default function NewTask() {
             {showDueDatePicker && (
               <View className="bg-white rounded-lg mt-1 border border-gray-200 shadow-sm overflow-hidden">
                 {dueDateOptions.map(option => (
-                  <Pressable 
-                    key={option.id}
-                    onPress={() => {
-                      setSelectedDueDate(option.name);
-                      setShowDueDatePicker(false);
-                    }}
-                    className={`px-4 py-3 border-b border-gray-100 flex-row items-center justify-between ${
-                      selectedDueDate === option.name ? 'bg-gray-50' : ''
-                    }`}
-                  >
-                    <Text className="text-gray-900">{option.name}</Text>
-                    {selectedDueDate === option.name && (
-                      <Check size={18} color="#10B981" />
-                    )}
-                  </Pressable>
+                  <View key={option.id} className="border-b border-gray-100">
+                    <Pressable 
+                      onPress={() => {
+                        setSelectedDueDate(option.name);
+                        setShowDueDatePicker(false);
+                      }}
+                      className={`px-4 py-3 flex-row items-center justify-between active:bg-gray-50 active:rounded-xl my-0.5 ${
+                        selectedDueDate === option.name ? 'bg-gray-50' : ''
+                      }`}
+                    >
+                      <Text className="text-gray-900">{option.name}</Text>
+                      {selectedDueDate === option.name && (
+                        <Check size={18} color="#10B981" />
+                      )}
+                    </Pressable>
+                  </View>
                 ))}
               </View>
             )}

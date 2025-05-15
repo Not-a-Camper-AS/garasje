@@ -66,16 +66,18 @@ const MaintenanceItem = ({
   color?: string;
   textColor?: string;
 }) => (
-  <Pressable className="flex-row items-center py-4 border-b border-gray-100 active:bg-gray-50">
-    <View className={`w-10 h-10 rounded-lg ${color} items-center justify-center mr-4`}>
-      {icon}
-    </View>
-    <Text className="text-base font-medium text-gray-900 flex-1">{title}</Text>
-    <View className={`flex-row items-center`}>
-      <Calendar size={14} className="text-gray-400 mr-1.5" />
-      <Text className={`text-sm text-gray-500`}>{date}</Text>
-    </View>
-  </Pressable>
+  <View className="border-b border-gray-100">
+    <Pressable className="flex-row items-center py-3 px-4 active:bg-gray-50 active:rounded-xl my-0.5">
+      <View className={`w-10 h-10 rounded-lg ${color} items-center justify-center mr-4`}>
+        {icon}
+      </View>
+      <Text className="text-base font-medium text-gray-900 flex-1">{title}</Text>
+      <View className={`flex-row items-center`}>
+        <Calendar size={14} className="text-gray-400 mr-1.5" />
+        <Text className={`text-sm text-gray-500`}>{date}</Text>
+      </View>
+    </Pressable>
+  </View>
 );
 
 export default function MaintenanceHistory() {

@@ -23,9 +23,21 @@ const mockVehicles: Vehicle[] = [
 		color: "Grå",
 		type: "car",
 		nickname: "Millenial Falcon",
+		bgColor: "#FFC193",
 	},
 	{
 		id: "2",
+		make: "Kawasaki",
+		model: "Ninja ZX-10R",
+		year: 2022,
+		licensePlate: "DE 54656",
+		color: "Grønn",
+		type: "bike",
+		nickname: "Ninja turtle",
+		bgColor: "#B9FFC2",
+	},
+	{
+		id: "3",
 		make: "Honda",
 		model: "Civic",
 		year: 2021,
@@ -33,16 +45,7 @@ const mockVehicles: Vehicle[] = [
 		color: "Blå",
 		type: "car",
 		nickname: "Min Honda",
-	},
-	{
-		id: "3",
-		make: "Bike",
-		model: "Mountain Bike",
-		year: 2022,
-		licensePlate: "DE 54656",
-		color: "Rød",
-		type: "bike",
-		nickname: "Min Sykkel",
+		bgColor: "#B9FFC2",
 	},
 ];
 
@@ -120,16 +123,23 @@ const TaskItem = ({
 	date, 
 	icon, 
 	color = "bg-amber-50",
-	textColor = "text-amber-700"
+	textColor = "text-amber-700",
+	taskId,
+	vehicleId
 }: { 
 	title: string; 
 	date: string;
 	icon: React.ReactNode;
 	color?: string;
 	textColor?: string;
+	taskId?: string;
+	vehicleId?: string;
 }) => (
-	<View className="border-b border-gray-50 py-1">
-		<Pressable className="flex-row items-center py-3.5 px-4 active:bg-gray-50 active:rounded-xl">
+	<View className="border-b border-gray-50">
+		<Pressable 
+			className="flex-row items-center py-3 px-4 active:bg-gray-50 active:rounded-xl my-0.5"
+			onPress={() => taskId && vehicleId ? router.push(`/vehicle/${vehicleId}/tasks/${taskId}`) : null}
+		>
 			<View className={`w-8 h-8 rounded-lg ${color} items-center justify-center mr-3`}>
 				{icon}
 			</View>
@@ -331,6 +341,8 @@ export default function Home() {
 												icon={todo.icon}
 												color="bg-amber-50"
 												textColor="text-amber-700"
+												taskId={todo.id}
+												vehicleId={item.id}
 											/>
 										))}
 									</AnimatedView>
@@ -351,6 +363,8 @@ export default function Home() {
 												icon={task.icon}
 												color="bg-green-50"
 												textColor="text-green-700"
+												taskId={task.id}
+												vehicleId={item.id}
 											/>
 										))}
 									</AnimatedView>

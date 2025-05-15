@@ -8,4 +8,5 @@ export interface Vehicle {
   imageUrl?: string;
   type?: 'car' | 'bike';
   nickname?: string;
+  bgColor?: string;
 } 
