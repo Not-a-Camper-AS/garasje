@@ -151,14 +151,14 @@ const AnimatedIndicator = ({
 		<Pressable 
 			onPress={onPress}
 			className="mx-1.5"
+			hitSlop={{ top: 10, bottom: 10, left: 5, right: 5 }}
 		>
 			<View
-				className={`rounded-full ${isActive ? "bg-gray-900" : "bg-white/70"}`}
+				className={`rounded-full ${isActive ? "bg-[#22000A]" : "bg-[#22000A]/20"}`}
 				style={{ 
-					width: isActive ? 10 : 8, 
-					height: 8,
-					opacity: isActive ? 1 : 0.6,
-					transform: [{ scale: isActive ? 1.2 : 1 }]
+					width: isActive ? 16 : 6, 
+					height: 6,
+					opacity: isActive ? 1 : 0.7,
 				}}
 			/>
 		</Pressable>
@@ -214,9 +214,7 @@ export default function Home() {
 	};
 
 	return (
-		<View className="flex-1" style={{ backgroundColor: currentBgColor }}>
-			<SafeAreaView className="flex-1">
-				{/* Vehicle display with PagerView */}
+			<SafeAreaView edges={["top"]} className="flex-1" style={{ backgroundColor: currentBgColor }}>
 				<PagerView
 					ref={pagerRef}
 					style={{ flex: 1 }}
@@ -227,12 +225,12 @@ export default function Home() {
 				>
 					{mockVehicles.map((item, index) => {
 						return (
-							<View key={item.id} style={{ flex: 1 }}>
+							<View key={item.id} style={{ flex: 1, backgroundColor: vehicleBackgrounds[index] }}>
 								<ScrollView 
 									showsVerticalScrollIndicator={false}
 									showsHorizontalScrollIndicator={false}
 									contentContainerStyle={{ 
-										paddingBottom: 60,
+										paddingBottom: 20, // Reduced padding
 										paddingHorizontal: SPACING 
 									}}
 								>
@@ -337,42 +335,43 @@ export default function Home() {
 									</AnimatedView>
 									
 									{/* Stats/Quick Info */}
-									<AnimatedView entering={FadeInDown.delay(500).duration(600)} className="flex-row mb-10">
-										<View className="flex-1 bg-white rounded-xl p-4 shadow-sm items-center mr-2" style={{ elevation: 2 }}>
-											<Fuel size={22} className="text-blue-500 mb-1.5" />
-											<Text className="text-sm text-gray-600 text-center">Neste service</Text>
-											<Text className="text-base font-bold text-gray-900">1200 km</Text>
-										</View>
-										<View className="flex-1 bg-white rounded-xl p-4 shadow-sm items-center mx-2" style={{ elevation: 2 }}>
-											<Battery size={22} className="text-blue-500 mb-1.5" />
-											<Text className="text-sm text-gray-600 text-center">Batteri</Text>
-											<Text className="text-base font-bold text-gray-900">God</Text>
-										</View>
-										<View className="flex-1 bg-white rounded-xl p-4 shadow-sm items-center ml-2" style={{ elevation: 2 }}>
-											<PenLine size={22} className="text-blue-500 mb-1.5" />
-											<Text className="text-sm text-gray-600 text-center">Notater</Text>
-											<Text className="text-base font-bold text-gray-900">3</Text>
+									<AnimatedView entering={FadeInDown.delay(500).duration(600)} className="mb-6">
+										<Text className="text-lg font-bold text-gray-900 mb-3">Statistikk</Text>
+										<View className="flex-row">
+											<View className="flex-1 bg-white rounded-xl p-4 shadow-sm items-center mr-2" style={{ elevation: 2 }}>
+												<Fuel size={22} className="text-blue-500 mb-1.5" />
+												<Text className="text-sm text-gray-600 text-center">Neste service</Text>
+												<Text className="text-base font-bold text-gray-900">1200 km</Text>
+											</View>
+											<View className="flex-1 bg-white rounded-xl p-4 shadow-sm items-center mx-2" style={{ elevation: 2 }}>
+												<Battery size={22} className="text-blue-500 mb-1.5" />
+												<Text className="text-sm text-gray-600 text-center">Batteri</Text>
+												<Text className="text-base font-bold text-gray-900">God</Text>
+											</View>
+											<View className="flex-1 bg-white rounded-xl p-4 shadow-sm items-center ml-2" style={{ elevation: 2 }}>
+												<PenLine size={22} className="text-blue-500 mb-1.5" />
+												<Text className="text-sm text-gray-600 text-center">Notater</Text>
+												<Text className="text-base font-bold text-gray-900">3</Text>
+											</View>
 										</View>
 									</AnimatedView>
+									
+									{/* Page indicators at bottom */}
+									<View className="flex-row justify-center items-center mb-8">
+										{mockVehicles.map((_, i) => (
+											<AnimatedIndicator 
+												key={i}
+												isActive={i === currentIndex}
+												onPress={() => goToVehicle(i)}
+											/>
+										))}
+									</View>
 								</ScrollView>
 							</View>
 						);
 					})}
 				</PagerView>
-				
-				{/* Footer with page indicators */}
-				<View className="py-2 px-6 border-t border-opacity-20 border-gray-500" style={{ backgroundColor: currentBgColor }}>
-					<View className="flex-row justify-center items-center">
-						{mockVehicles.map((_, i) => (
-							<AnimatedIndicator 
-								key={i}
-								isActive={i === currentIndex}
-								onPress={() => goToVehicle(i)}
-							/>
-						))}
-					</View>
-				</View>
 			</SafeAreaView>
-		</View>
+	
 	);
 }
