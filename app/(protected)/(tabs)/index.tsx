@@ -128,15 +128,17 @@ const TaskItem = ({
 	color?: string;
 	textColor?: string;
 }) => (
-	<Pressable className="flex-row items-center py-3 border-b border-gray-50 active:bg-gray-50">
-		<View className={`w-8 h-8 rounded-lg ${color} items-center justify-center mr-3`}>
-			{icon}
-		</View>
-		<Text className="text-base font-medium text-gray-900 flex-1">{title}</Text>
-		<View className={`${color} rounded-full px-2.5 py-1`}>
-			<Text className={`text-sm ${textColor}`}>{date}</Text>
-		</View>
-	</Pressable>
+	<View className="border-b border-gray-50 py-1">
+		<Pressable className="flex-row items-center py-3.5 px-4 active:bg-gray-50 active:rounded-xl">
+			<View className={`w-8 h-8 rounded-lg ${color} items-center justify-center mr-3`}>
+				{icon}
+			</View>
+			<Text className="text-base font-medium text-gray-900 flex-1">{title}</Text>
+			<View className={`${color} rounded-full px-2.5 py-1`}>
+				<Text className={`text-sm ${textColor}`}>{date}</Text>
+			</View>
+		</Pressable>
+	</View>
 );
 
 // Indicator component with animation
