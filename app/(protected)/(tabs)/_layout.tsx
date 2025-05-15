@@ -3,6 +3,7 @@ import { Tabs } from "expo-router";
 
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
+import { Car } from "lucide-react-native";
 
 export default function TabsLayout() {
 	const { colorScheme } = useColorScheme();
@@ -21,11 +22,17 @@ export default function TabsLayout() {
 					colorScheme === "dark"
 						? colors.dark.foreground
 						: colors.light.foreground,
-				tabBarShowLabel: false,
+				tabBarShowLabel: true,
 			}}
 		>
-			<Tabs.Screen name="index" options={{ title: "Home" }} />
-			<Tabs.Screen name="settings" options={{ title: "Settings" }} />
+			<Tabs.Screen name="index" options={{ title: "Fremside", tabBarIcon: ({ color, size }) => (
+					<Car  color={color} size={size} />
+				),
+				}}
+			/>
+			<Tabs.Screen
+				name="settings"
+				options={{ title: "Innstillinger" }}
 		</Tabs>
 	);
 }
