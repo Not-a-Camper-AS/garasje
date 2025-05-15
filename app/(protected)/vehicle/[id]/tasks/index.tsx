@@ -110,7 +110,7 @@ export default function VehicleTasks() {
           </Pressable>
           <View className="flex-1">
             <Text className="text-base text-gray-600">{vehicle.make} {vehicle.model}</Text>
-            <Text className="text-xl font-bold">Oppgaver</Text>
+            <Text className="text-xl font-bold">Planlagte oppgaver</Text>
           </View>
           <Pressable 
             onPress={() => router.push(`/vehicle/${id}/tasks/new`)}
@@ -124,7 +124,7 @@ export default function VehicleTasks() {
         <ScrollView className="flex-1 px-4">
           <View className="py-4 flex-row items-center">
             <Clock size={20} color="#F59E0B" />
-            <Text className="text-lg font-bold ml-2">Aktive oppgaver</Text>
+            <Text className="text-lg font-bold ml-2">Kommende vedlikehold</Text>
           </View>
           
           {mockTasks.map(task => (

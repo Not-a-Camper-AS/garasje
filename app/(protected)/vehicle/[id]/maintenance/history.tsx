@@ -105,7 +105,7 @@ export default function MaintenanceHistory() {
           </Pressable>
           <View className="flex-1">
             <Text className="text-base text-gray-600">{vehicle.make} {vehicle.model}</Text>
-            <Text className="text-xl font-bold">Vedlikeholdslogg</Text>
+            <Text className="text-xl font-bold">Vedlikeholdshistorikk</Text>
           </View>
           <Pressable 
             onPress={() => router.push(`/vehicle/${id}/maintenance/log`)}
@@ -119,7 +119,7 @@ export default function MaintenanceHistory() {
         <ScrollView className="flex-1 px-4">
           <View className="py-4 flex-row items-center">
             <CheckCircle2 size={20} color="#10B981" />
-            <Text className="text-lg font-bold ml-2">Fullførte vedlikehold</Text>
+            <Text className="text-lg font-bold ml-2">Utført vedlikehold</Text>
           </View>
           
           {mockCompletedTasks.map(task => (

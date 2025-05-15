@@ -102,7 +102,7 @@ export default function LogMaintenance() {
           </Pressable>
           <View className="flex-1">
             <Text className="text-base text-gray-600">{vehicle.make} {vehicle.model}</Text>
-            <Text className="text-xl font-bold">Logg vedlikehold</Text>
+            <Text className="text-xl font-bold">Registrer utført vedlikehold</Text>
           </View>
           <Pressable 
             onPress={handleSave}
@@ -117,7 +117,7 @@ export default function LogMaintenance() {
         <ScrollView className="flex-1 px-4">
           {/* Title input */}
           <View className="mt-5">
-            <Text className="text-base font-bold mb-2">Hva har du gjort?</Text>
+            <Text className="text-base font-bold mb-2">Hvilket vedlikehold har blitt utført?</Text>
             <TextInput
               value={title}
               onChangeText={setTitle}

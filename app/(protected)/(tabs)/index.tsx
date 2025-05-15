@@ -368,7 +368,7 @@ export default function Home() {
 											color="bg-[#22000A]"
 										/>
 										<QuickAction 
-											label="Vedlikehold" 
+											label="Logg vedlikehold" 
 											icon={<Wrench size={18} color="white" />} 
 											onPress={() => handleLogMaintenance(item.id)}
 											color="bg-[#22000A]"
@@ -384,7 +384,7 @@ export default function Home() {
 									{/* Recent To-dos Section */}
 									<AnimatedView entering={FadeInDown.delay(300).duration(600)} className="bg-white rounded-2xl p-5 mb-4" style={{ elevation: 2 }}>
 										<SectionHeader 
-											title="Oppgaver" 
+											title="Planlagte oppgaver" 
 											icon={<Clock size={18} className="text-amber-500" />}
 											onViewMore={() => handleViewAllTodos(item.id)} 
 										/>
@@ -406,7 +406,7 @@ export default function Home() {
 									{/* Recently Completed Section */}
 									<AnimatedView entering={FadeInDown.delay(400).duration(600)} className="bg-white rounded-2xl p-5 mb-4" style={{ elevation: 2 }}>
 										<SectionHeader 
-											title="Fullført" 
+											title="Utført vedlikehold" 
 											icon={<CheckCircle2 size={18} className="text-green-500" />}
 											onViewMore={() => handleViewAllCompleted(item.id)} 
 										/>

@@ -115,7 +115,7 @@ export default function NewTask() {
           </Pressable>
           <View className="flex-1">
             <Text className="text-base text-gray-600">{vehicle.make} {vehicle.model}</Text>
-            <Text className="text-xl font-bold">Ny oppgave</Text>
+            <Text className="text-xl font-bold">Planlegg vedlikehold</Text>
           </View>
           <Pressable 
             onPress={handleSave}
@@ -130,7 +130,7 @@ export default function NewTask() {
         <ScrollView className="flex-1 px-4">
           {/* Title input */}
           <View className="mt-5">
-            <Text className="text-base font-bold mb-2">Hva må gjøres?</Text>
+            <Text className="text-base font-bold mb-2">Hvilket vedlikehold planlegger du?</Text>
             <TextInput
               value={title}
               onChangeText={setTitle}
