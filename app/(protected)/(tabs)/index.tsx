@@ -45,7 +45,7 @@ const mockVehicles: Vehicle[] = [
 		color: "Blå",
 		type: "car",
 		nickname: "Min Honda",
-		bgColor: "#B9FFC2",
+		bgColor: "#FFFFFF",
 	},
 ];
 
@@ -60,9 +60,6 @@ const mockCompletedTasks = [
 	{ id: "1", title: "Byttet bremseklosser", date: "2d", icon: <Wrench size={14} className="text-green-600" /> },
 	{ id: "2", title: "Fylt spylervæske", date: "1u", icon: <DropletIcon size={14} className="text-green-600" /> },
 ];
-
-// Background colors for pages
-const bgColors = ["#B9FFC2", "#FFC193", "#FFFFFF"];
 
 // Quick action button component with new design
 const QuickAction = ({ 
@@ -186,15 +183,8 @@ export default function Home() {
 	const pagerRef = useRef<PagerView>(null);
 	const currentVehicle = mockVehicles[currentIndex];
 	
-	// Assign a background color to each vehicle
-	const vehicleBackgrounds = useMemo(() => {
-		return mockVehicles.map((_, index) => {
-			return bgColors[index % bgColors.length];
-		});
-	}, []);
-	
 	// Get current background color
-	const currentBgColor = vehicleBackgrounds[currentIndex];
+	const currentBgColor = currentVehicle.bgColor;
 	
 	// Handle refresh
 	const onRefresh = useCallback(() => {
