@@ -1,6 +1,6 @@
 import { router } from "expo-router";
-import { View, useWindowDimensions, Pressable, ScrollView } from "react-native";
-import { useState, useRef, useMemo } from "react";
+import { View, useWindowDimensions, Pressable, ScrollView, RefreshControl } from "react-native";
+import { useState, useRef, useMemo, useCallback } from "react";
 import Animated, { FadeInDown, FadeIn, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import PagerView from 'react-native-pager-view';
 
@@ -81,10 +81,10 @@ const QuickAction = ({
 		onPress={onPress}
 		android_ripple={{ color: 'rgba(0,0,0,0.1)', borderless: false, radius: 20 }}
 	>
-		<View className="bg-white/20 rounded-lg p-1.5 mr-2.5">
+		<Text className={`text-base font-black italic mr-2.5 ${textColor}`}>{label}</Text>
+		<View className=" rounded-lg p-1.5 ">
 			{icon}
 		</View>
-		<Text className={`text-base font-bold ${textColor}`}>{label}</Text>
 	</Pressable>
 );
 
@@ -170,6 +170,7 @@ export default function Home() {
 	const SPACING = 24; // Padding for content
 	
 	const [currentIndex, setCurrentIndex] = useState(0);
+	const [refreshing, setRefreshing] = useState(false);
 	const pagerRef = useRef<PagerView>(null);
 	const currentVehicle = mockVehicles[currentIndex];
 	
@@ -182,6 +183,15 @@ export default function Home() {
 	
 	// Get current background color
 	const currentBgColor = vehicleBackgrounds[currentIndex];
+	
+	// Handle refresh
+	const onRefresh = useCallback(() => {
+		setRefreshing(true);
+		// Here you would fetch new data
+		setTimeout(() => {
+			setRefreshing(false);
+		}, 2000);
+	}, []);
 	
 	// Handle page changes with a smoother transition
 	const handlePageSelected = (e: any) => {
@@ -225,7 +235,7 @@ export default function Home() {
 				>
 					{mockVehicles.map((item, index) => {
 						return (
-							<View key={item.id} style={{ flex: 1, backgroundColor: vehicleBackgrounds[index] }}>
+							<View key={item.id} style={{ flex: 1 }}>
 								<ScrollView 
 									showsVerticalScrollIndicator={false}
 									showsHorizontalScrollIndicator={false}
@@ -233,6 +243,15 @@ export default function Home() {
 										paddingBottom: 20, // Reduced padding
 										paddingHorizontal: SPACING 
 									}}
+									refreshControl={
+										<RefreshControl
+											refreshing={refreshing}
+											onRefresh={onRefresh}
+											tintColor="#22000A"
+											colors={["#22000A"]}
+											progressBackgroundColor="#ffffff"
+										/>
+									}
 								>
 									{/* Vehicle Info */}
 									<AnimatedView entering={FadeIn.delay(100).duration(600)} className="flex-row items-center justify-between mt-8 mb-5">
@@ -282,13 +301,13 @@ export default function Home() {
 									<AnimatedView entering={FadeInDown.delay(200).duration(600)} className="flex-row flex-wrap mt-1 mb-6">
 										<QuickAction 
 											label="Ny oppgave" 
-											icon={<Plus size={18} className="text-white" />} 
+											icon={<Plus size={18} color="white" />} 
 											onPress={() => handleAddTasks(item.id)}
 											color="bg-[#22000A]"
 										/>
 										<QuickAction 
 											label="Vedlikehold" 
-											icon={<Wrench size={18} className="text-white" />} 
+											icon={<Wrench size={18} color="white" />} 
 											onPress={() => handleLogMaintenance(item.id)}
 											color="bg-[#22000A]"
 										/>
@@ -372,6 +391,5 @@ export default function Home() {
 					})}
 				</PagerView>
 			</SafeAreaView>
-	
 	);
 }
