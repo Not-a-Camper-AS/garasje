@@ -7,7 +7,7 @@ import PagerView from 'react-native-pager-view';
 import { Text } from "@/components/ui/text";
 import { Vehicle } from "@/types/vehicle";
 import { SafeAreaView } from "@/components/safe-area-view";
-import { ClipboardList, Wrench, ChevronRight, Car, Bike, CheckCircle2, Clock, ArrowRight, Plus, Calendar, DropletIcon, Fuel, Battery, PenLine, Sparkles } from "lucide-react-native";
+import { ClipboardList, Wrench, ChevronRight, Car, Bike, CheckCircle2, Clock, ArrowRight, Plus, Calendar, DropletIcon, Fuel, Battery, PenLine, Sparkles, WrenchIcon } from "lucide-react-native";
 
 // Animated components
 const AnimatedView = Animated.createAnimatedComponent(View);
@@ -29,7 +29,7 @@ const mockVehicles: Vehicle[] = [
 		make: "Honda",
 		model: "Civic",
 		year: 2021,
-		licensePlate: "XYZ789",
+		licensePlate: "XY 85789",
 		color: "Blå",
 		type: "car",
 		nickname: "Min Honda",
@@ -39,7 +39,7 @@ const mockVehicles: Vehicle[] = [
 		make: "Bike",
 		model: "Mountain Bike",
 		year: 2022,
-		licensePlate: "DEF456",
+		licensePlate: "DE 54656",
 		color: "Rød",
 		type: "bike",
 		nickname: "Min Sykkel",
@@ -201,19 +201,19 @@ export default function Home() {
 	
 	// Handle action button presses
 	const handleAddTasks = (vehicleId: string) => {
-		router.push(`/(protected)/vehicle/${vehicleId}/tasks/new`);
+		router.push(`/vehicle/${vehicleId}/tasks/new`);
 	};
 
 	const handleLogMaintenance = (vehicleId: string) => {
-		router.push(`/(protected)/vehicle/${vehicleId}/maintenance/log`);
+		router.push(`/vehicle/${vehicleId}/maintenance/log`);
 	};
 
 	const handleViewAllTodos = (vehicleId: string) => {
-		router.push(`/(protected)/vehicle/${vehicleId}/tasks`);
+		router.push(`/vehicle/${vehicleId}/tasks`);
 	};
 
 	const handleViewAllCompleted = (vehicleId: string) => {
-		router.push(`/(protected)/vehicle/${vehicleId}/maintenance/history`);
+		router.push(`/vehicle/${vehicleId}/maintenance/history`);
 	};
 	
 	// Handle manual navigation to specific vehicle
@@ -283,7 +283,7 @@ export default function Home() {
 										<View 
 											className={`w-20 h-20 rounded-full ${
 												item.type === 'bike' ? 'bg-purple-100' : 'bg-blue-100'
-											} items-center justify-center shadow-sm`}
+											} items-center justify-center`}
 											style={{ elevation: 3 }}
 										>
 											{item.type === 'bike' ? (
@@ -314,7 +314,7 @@ export default function Home() {
 									</AnimatedView>
 
 									{/* Recent To-dos Section */}
-									<AnimatedView entering={FadeInDown.delay(300).duration(600)} className="bg-white rounded-2xl p-5 shadow-sm mb-4" style={{ elevation: 2 }}>
+									<AnimatedView entering={FadeInDown.delay(300).duration(600)} className="bg-white rounded-2xl p-5 mb-4" style={{ elevation: 2 }}>
 										<SectionHeader 
 											title="Oppgaver" 
 											icon={<Clock size={18} className="text-amber-500" />}
@@ -334,7 +334,7 @@ export default function Home() {
 									</AnimatedView>
 
 									{/* Recently Completed Section */}
-									<AnimatedView entering={FadeInDown.delay(400).duration(600)} className="bg-white rounded-2xl p-5 shadow-sm mb-5" style={{ elevation: 2 }}>
+									<AnimatedView entering={FadeInDown.delay(400).duration(600)} className="bg-white rounded-2xl p-5 mb-5" style={{ elevation: 2 }}>
 										<SectionHeader 
 											title="Fullført" 
 											icon={<CheckCircle2 size={18} className="text-green-500" />}
@@ -356,21 +356,34 @@ export default function Home() {
 									{/* Stats/Quick Info */}
 									<AnimatedView entering={FadeInDown.delay(500).duration(600)} className="mb-6">
 										<Text className="text-lg font-bold text-gray-900 mb-3">Statistikk</Text>
-										<View className="flex-row">
-											<View className="flex-1 bg-white rounded-xl p-4 shadow-sm items-center mr-2" style={{ elevation: 2 }}>
-												<Fuel size={22} className="text-blue-500 mb-1.5" />
-												<Text className="text-sm text-gray-600 text-center">Neste service</Text>
-												<Text className="text-base font-bold text-gray-900">1200 km</Text>
+										<View className="flex-row flex-wrap">
+											<View className="w-1/3 pr-2 mb-4">
+												<View className="bg-white rounded-xl p-4 items-center" style={{ elevation: 2 }}>
+													<Fuel size={22} className="text-blue-500 mb-1.5" />
+													<Text className="text-sm text-gray-600 text-center">Neste service</Text>
+													<Text className="text-base font-bold text-gray-900">1200 km</Text>
+												</View>
 											</View>
-											<View className="flex-1 bg-white rounded-xl p-4 shadow-sm items-center mx-2" style={{ elevation: 2 }}>
-												<Battery size={22} className="text-blue-500 mb-1.5" />
-												<Text className="text-sm text-gray-600 text-center">Batteri</Text>
-												<Text className="text-base font-bold text-gray-900">God</Text>
+											<View className="w-1/3 px-1 mb-4">
+												<View className="bg-white rounded-xl p-4 items-center" style={{ elevation: 2 }}>
+													<Battery size={22} className="text-blue-500 mb-1.5" />
+													<Text className="text-sm text-gray-600 text-center">Batteri</Text>
+													<Text className="text-base font-bold text-gray-900">God</Text>
+												</View>
 											</View>
-											<View className="flex-1 bg-white rounded-xl p-4 shadow-sm items-center ml-2" style={{ elevation: 2 }}>
-												<PenLine size={22} className="text-blue-500 mb-1.5" />
-												<Text className="text-sm text-gray-600 text-center">Notater</Text>
-												<Text className="text-base font-bold text-gray-900">3</Text>
+											<View className="w-1/3 pl-2 mb-4">
+												<View className="bg-white rounded-xl p-4 items-center" style={{ elevation: 2 }}>
+													<PenLine size={22} className="text-blue-500 mb-1.5" />
+													<Text className="text-sm text-gray-600 text-center">Notater</Text>
+													<Text className="text-base font-bold text-gray-900">3</Text>
+												</View>
+											</View>
+											<View className="w-1/3 pr-2">
+												<View className="bg-white rounded-xl p-4 items-center" style={{ elevation: 2 }}>
+													<WrenchIcon size={22} className="text-blue-500 mb-1.5" />
+													<Text className="text-sm text-gray-600 text-center">EU-kontroll</Text>
+													<Text className="text-base font-bold text-gray-900">Om 5 mnd</Text>
+												</View>
 											</View>
 										</View>
 									</AnimatedView>

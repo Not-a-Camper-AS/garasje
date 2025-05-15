@@ -9,7 +9,7 @@ const Card = React.forwardRef<
   <Pressable
     ref={ref}
     className={cn(
-      "rounded-lg border border-border bg-card p-4 shadow-sm",
+      "rounded-lg border border-border bg-card p-4 shadow-none",
       className
     )}
     {...props}
