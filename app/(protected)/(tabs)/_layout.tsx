@@ -1,9 +1,9 @@
 import React from "react";
-import { Tabs } from "expo-router";
+import { router, Tabs } from "expo-router";
 
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
-import { Car, House, Settings } from "lucide-react-native";
+import { Car, House, Plus, Settings } from "lucide-react-native";
 
 export default function TabsLayout() {
 	const { colorScheme } = useColorScheme();
@@ -34,8 +34,21 @@ export default function TabsLayout() {
 					),
 				}}
 			/>
-			
-
+			<Tabs.Screen
+				name="add"
+				listeners={{
+					tabPress: (e) => {
+						e.preventDefault();
+						router.push("/new-vehicle");
+					},
+				}}
+				options={{
+					title: "Nytt kjøretøy",
+					tabBarIcon: ({ color, size }) => (
+						<Plus size={size} color={color} />
+					),
+				}}
+			/>
 			<Tabs.Screen
 				name="settings"
 				options={{
