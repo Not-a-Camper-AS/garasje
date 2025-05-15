@@ -2,7 +2,7 @@ import * as React from "react";
 import { View, StyleProp, ViewStyle } from "react-native";
 import { Text } from "@/components/ui/text";
 import { Vehicle } from "@/types/vehicle";
-import { Car, Bike, ChevronRight, Zap } from "lucide-react-native";
+import { Car, Bike, ChevronRight } from "lucide-react-native";
 import { Card } from "./ui/card";
 
 interface VehicleCardProps {
@@ -23,7 +23,7 @@ export function VehicleCard({ vehicle, onPress, style }: VehicleCardProps) {
     bike: "bg-purple-100", 
   };
 
-  const icon = vehicle.type ? iconMap[vehicle.type] : <Zap size={20} className="text-blue-800" />;
+  const icon = vehicle.type ? iconMap[vehicle.type] : <Car size={20} className="text-blue-800" />;
   const bgColor = vehicle.type ? bgColorMap[vehicle.type] : "bg-blue-100";
 
   return (
