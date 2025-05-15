@@ -1,11 +1,16 @@
 import { router } from "expo-router";
-import { FlatList, View, useWindowDimensions, Pressable, ScrollView } from "react-native";
+import { View, useWindowDimensions, Pressable, ScrollView } from "react-native";
 import { useState, useRef } from "react";
+import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
+import PagerView from 'react-native-pager-view';
 
 import { Text } from "@/components/ui/text";
 import { Vehicle } from "@/types/vehicle";
 import { SafeAreaView } from "@/components/safe-area-view";
-import { ClipboardList, Wrench, ChevronRight, Car, Bike, CheckCircle2, Clock, ArrowRight, Plus, Calendar, DropletIcon, Fuel, Battery, PenLine } from "lucide-react-native";
+import { ClipboardList, Wrench, ChevronRight, Car, Bike, CheckCircle2, Clock, ArrowRight, Plus, Calendar, DropletIcon, Fuel, Battery, PenLine, Sparkles } from "lucide-react-native";
+
+// Animated components
+const AnimatedView = Animated.createAnimatedComponent(View);
 
 // Temporary mock data - replace with actual data from your backend
 const mockVehicles: Vehicle[] = [
@@ -68,13 +73,15 @@ const QuickAction = ({
 	textColor?: string;
 }) => (
 	<Pressable 
-		className={`${color} rounded-full py-1.5 px-3 flex-row items-center mr-2 shadow-sm`}
+		className={`${color} rounded-full py-2 px-4 flex-row items-center mr-3 mb-2 shadow-sm`}
+		style={{ elevation: 2 }}
 		onPress={onPress}
+		android_ripple={{ color: 'rgba(0,0,0,0.1)', borderless: false, radius: 20 }}
 	>
-		<View className="mr-1">
+		<View className="mr-1.5">
 			{icon}
 		</View>
-		<Text className={`text-sm font-medium ${textColor}`}>{label}</Text>
+		<Text className={`text-base font-medium ${textColor}`}>{label}</Text>
 	</Pressable>
 );
 
@@ -88,27 +95,81 @@ const SectionHeader = ({
 	onViewMore: () => void;
 	icon: React.ReactNode;
 }) => (
-	<View className="flex-row items-center justify-between mb-2">
+	<View className="flex-row items-center justify-between mb-3">
 		<View className="flex-row items-center">
 			{icon}
-			<Text className="text-base font-bold text-gray-900 ml-1">{title}</Text>
+			<Text className="text-lg font-bold text-gray-900 ml-1.5">{title}</Text>
 		</View>
-		<Pressable onPress={onViewMore} className="flex-row items-center">
-			<Text className="text-xs font-medium text-gray-600 mr-1">Se alle</Text>
-			<ArrowRight size={14} className="text-gray-600" />
+		<Pressable 
+			onPress={onViewMore} 
+			className="flex-row items-center py-1 px-2 rounded-full active:bg-gray-100"
+			hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+		>
+			<Text className="text-sm font-medium text-gray-600 mr-1">Se alle</Text>
+			<ArrowRight size={16} className="text-gray-600" />
 		</Pressable>
 	</View>
 );
 
+// Task item component
+const TaskItem = ({ 
+	title, 
+	date, 
+	icon, 
+	color = "bg-amber-50",
+	textColor = "text-amber-700"
+}: { 
+	title: string; 
+	date: string;
+	icon: React.ReactNode;
+	color?: string;
+	textColor?: string;
+}) => (
+	<Pressable className="flex-row items-center py-3 border-b border-gray-50 active:bg-gray-50">
+		<View className={`w-8 h-8 rounded-lg ${color} items-center justify-center mr-3`}>
+			{icon}
+		</View>
+		<Text className="text-base font-medium text-gray-900 flex-1">{title}</Text>
+		<View className={`${color} rounded-full px-2.5 py-1`}>
+			<Text className={`text-sm ${textColor}`}>{date}</Text>
+		</View>
+	</Pressable>
+);
+
+// Indicator component with animation
+const AnimatedIndicator = ({ 
+	isActive, 
+	onPress 
+}: { 
+	isActive: boolean; 
+	onPress: () => void;
+}) => {
+	return (
+		<Pressable 
+			onPress={onPress}
+			className="mx-1.5"
+		>
+			<View
+				className={`rounded-full ${isActive ? "bg-gray-900" : "bg-white/70"}`}
+				style={{ 
+					width: isActive ? 10 : 8, 
+					height: 8,
+					opacity: isActive ? 1 : 0.6,
+					transform: [{ scale: isActive ? 1.2 : 1 }]
+				}}
+			/>
+		</Pressable>
+	);
+};
+
 export default function Home() {
 	const { width } = useWindowDimensions();
-	const ITEM_WIDTH = width;
-	const SPACING = width * 0.05; // Reduced side padding
+	const SPACING = 24; // Padding for content
 	
 	const [currentIndex, setCurrentIndex] = useState(0);
-	const flatListRef = useRef<FlatList>(null);
+	const pagerRef = useRef<PagerView>(null);
 	const currentVehicle = mockVehicles[currentIndex];
-
+	
 	// Handle action button presses
 	const handleAddTasks = (vehicleId: string) => {
 		router.push(`/(protected)/vehicle/${vehicleId}/tasks/new`);
@@ -125,168 +186,175 @@ export default function Home() {
 	const handleViewAllCompleted = (vehicleId: string) => {
 		router.push(`/(protected)/vehicle/${vehicleId}/maintenance/history`);
 	};
+	
+	// Handle manual navigation to specific vehicle
+	const goToVehicle = (index: number) => {
+		if (pagerRef.current) {
+			pagerRef.current.setPage(index);
+		}
+	};
 
 	return (
 		<SafeAreaView className="flex-1 bg-[#C7F9CC]">
-			<FlatList
-				ref={flatListRef}
-				data={mockVehicles}
-				horizontal
-				pagingEnabled
-				showsHorizontalScrollIndicator={false}
-				snapToInterval={ITEM_WIDTH}
-				decelerationRate="fast"
-				snapToAlignment="center"
-				keyExtractor={(item) => item.id}
-				getItemLayout={(_, index) => ({
-					length: ITEM_WIDTH,
-					offset: ITEM_WIDTH * index,
-					index,
-				})}
-				onMomentumScrollEnd={e => {
-					const index = Math.round(e.nativeEvent.contentOffset.x / ITEM_WIDTH);
-					setCurrentIndex(index);
-				}}
-				renderItem={({ item }) => (
-					<View style={{ 
-						width: ITEM_WIDTH, 
-						height: '100%',
-						paddingHorizontal: SPACING,
-					}}>
-						<ScrollView showsVerticalScrollIndicator={false}>
-							{/* Vehicle Info */}
-							<View className="flex-row items-center justify-between mt-6 mb-4">
-								<View className="flex-1">
-									{/* Nickname */}
-									<Text className="text-4xl font-black text-gray-900 italic mb-0">
-										{item.nickname || ''}
-									</Text>
-									
-									{/* Vehicle Details */}
-									<View className="flex-row items-center">
-										<Text className="text-base font-medium text-gray-700">
-											{item.make} {item.model}
+			{/* Vehicle display with PagerView */}
+			<View className="flex-1">
+				<PagerView
+					ref={pagerRef}
+					style={{ flex: 1 }}
+					initialPage={0}
+					onPageSelected={e => setCurrentIndex(e.nativeEvent.position)}
+				>
+					{mockVehicles.map((item, index) => (
+						<View key={item.id} style={{ flex: 1 }}>
+							<ScrollView 
+								showsVerticalScrollIndicator={false} 
+								contentContainerStyle={{ 
+									paddingBottom: 70,
+									paddingHorizontal: SPACING 
+								}}
+							>
+								{/* Vehicle Info */}
+								<AnimatedView entering={FadeIn.delay(100).duration(600)} className="flex-row items-center justify-between mt-8 mb-5">
+									<View className="flex-1">
+										{/* Nickname */}
+										<Text className="text-5xl font-black text-gray-900 italic mb-1">
+											{item.nickname || ''}
 										</Text>
-										<View className="bg-white/30 rounded-full px-2 py-0.5 ml-2">
-											<Text className="text-xs text-gray-600">
-												{item.year}
+										
+										{/* Vehicle Details */}
+										<View className="flex-row items-center flex-wrap mt-1">
+											<Text className="text-lg font-medium text-gray-700 mr-2">
+												{item.make} {item.model}
 											</Text>
-										</View>
-										<View className="bg-white/30 rounded-full px-2 py-0.5 ml-1">
-											<Text className="text-xs text-gray-600">
-												{item.licensePlate}
-											</Text>
+											<View className="bg-white/30 rounded-full px-2.5 py-0.5">
+												<Text className="text-sm text-gray-600">
+													{item.year}
+												</Text>
+											</View>
+											<View className="bg-white/30 rounded-full px-2.5 py-0.5 ml-1.5">
+												<Text className="text-sm text-gray-600">
+													{item.licensePlate}
+												</Text>
+											</View>
 										</View>
 									</View>
-								</View>
 
-								{/* Icon */}
-								<View className={`w-16 h-16 rounded-full ${item.type === 'bike' ? 'bg-purple-100' : 'bg-blue-100'} items-center justify-center`}>
-									{item.type === 'bike' ? (
-										<Bike size={30} className="text-purple-700" />
-									) : (
-										<Car size={30} className="text-blue-700" />
-									)}
-								</View>
-							</View>
-							
-							{/* Quick Actions */}
-							<View className="flex-row flex-wrap mt-1 mb-5">
-								<QuickAction 
-									label="Ny oppgave" 
-									icon={<Plus size={14} className="text-white" />} 
-									onPress={() => handleAddTasks(item.id)}
-									color="bg-indigo-500"
-								/>
-								<QuickAction 
-									label="Logg vedlikehold" 
-									icon={<Wrench size={14} className="text-white" />} 
-									onPress={() => handleLogMaintenance(item.id)}
-									color="bg-emerald-500"
-								/>
-								<QuickAction 
-									label="Kalender" 
-									icon={<Calendar size={14} className="text-gray-700" />} 
-									onPress={() => router.push(`/(protected)/vehicle/${item.id}/calendar`)}
-									color="bg-white"
-									textColor="text-gray-700"
-								/>
-							</View>
-
-							{/* Recent To-dos Section */}
-							<View className="bg-white rounded-2xl p-4 shadow-sm mb-3">
-								<SectionHeader 
-									title="Oppgaver" 
-									icon={<Clock size={16} className="text-amber-500" />}
-									onViewMore={() => handleViewAllTodos(item.id)} 
-								/>
+									{/* Icon */}
+									<View 
+										className={`w-20 h-20 rounded-full ${
+											item.type === 'bike' ? 'bg-purple-100' : 'bg-blue-100'
+										} items-center justify-center shadow-sm`}
+										style={{ elevation: 3 }}
+									>
+										{item.type === 'bike' ? (
+											<Bike size={36} className="text-purple-700" />
+										) : (
+											<Car size={36} className="text-blue-700" />
+										)}
+										<View className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-green-400 border border-white items-center justify-center">
+											<Sparkles size={12} className="text-white" />
+										</View>
+									</View>
+								</AnimatedView>
 								
-								{mockTodos.slice(0, 3).map(todo => (
-									<View key={todo.id} className="flex-row items-center py-2 border-b border-gray-50">
-										<View className="w-6 h-6 rounded-lg bg-amber-50 items-center justify-center mr-2">
-											{todo.icon}
-										</View>
-										<Text className="text-sm font-medium text-gray-900 flex-1">{todo.title}</Text>
-										<View className="bg-amber-50 rounded-full px-2 py-0.5">
-											<Text className="text-xs text-amber-700">{todo.dueDate}</Text>
-										</View>
-									</View>
-								))}
-							</View>
+								{/* Quick Actions */}
+								<AnimatedView entering={FadeInDown.delay(200).duration(600)} className="flex-row flex-wrap mt-1 mb-6">
+									<QuickAction 
+										label="Ny oppgave" 
+										icon={<Plus size={16} className="text-white" />} 
+										onPress={() => handleAddTasks(item.id)}
+										color="bg-indigo-500"
+									/>
+									<QuickAction 
+										label="Logg vedlikehold" 
+										icon={<Wrench size={16} className="text-white" />} 
+										onPress={() => handleLogMaintenance(item.id)}
+										color="bg-emerald-500"
+									/>
+									<QuickAction 
+										label="Kalender" 
+										icon={<Calendar size={16} className="text-gray-700" />} 
+										onPress={() => router.push(`/(protected)/vehicle/${item.id}/calendar`)}
+										color="bg-white"
+										textColor="text-gray-700"
+									/>
+								</AnimatedView>
 
-							{/* Recently Completed Section */}
-							<View className="bg-white rounded-2xl p-4 shadow-sm mb-8">
-								<SectionHeader 
-									title="Fullført" 
-									icon={<CheckCircle2 size={16} className="text-green-500" />}
-									onViewMore={() => handleViewAllCompleted(item.id)} 
-								/>
+								{/* Recent To-dos Section */}
+								<AnimatedView entering={FadeInDown.delay(300).duration(600)} className="bg-white rounded-2xl p-5 shadow-sm mb-4" style={{ elevation: 2 }}>
+									<SectionHeader 
+										title="Oppgaver" 
+										icon={<Clock size={18} className="text-amber-500" />}
+										onViewMore={() => handleViewAllTodos(item.id)} 
+									/>
+									
+									{mockTodos.map((todo, todoIndex) => (
+										<TaskItem
+											key={todo.id}
+											title={todo.title}
+											date={todo.dueDate}
+											icon={todo.icon}
+											color="bg-amber-50"
+											textColor="text-amber-700"
+										/>
+									))}
+								</AnimatedView>
+
+								{/* Recently Completed Section */}
+								<AnimatedView entering={FadeInDown.delay(400).duration(600)} className="bg-white rounded-2xl p-5 shadow-sm mb-5" style={{ elevation: 2 }}>
+									<SectionHeader 
+										title="Fullført" 
+										icon={<CheckCircle2 size={18} className="text-green-500" />}
+										onViewMore={() => handleViewAllCompleted(item.id)} 
+									/>
+									
+									{mockCompletedTasks.map(task => (
+										<TaskItem
+											key={task.id}
+											title={task.title}
+											date={task.date}
+											icon={task.icon}
+											color="bg-green-50"
+											textColor="text-green-700"
+										/>
+									))}
+								</AnimatedView>
 								
-								{mockCompletedTasks.slice(0, 2).map(task => (
-									<View key={task.id} className="flex-row items-center py-2 border-b border-gray-50">
-										<View className="w-6 h-6 rounded-lg bg-green-50 items-center justify-center mr-2">
-											{task.icon}
-										</View>
-										<Text className="text-sm font-medium text-gray-900 flex-1">{task.title}</Text>
-										<View className="bg-green-50 rounded-full px-2 py-0.5">
-											<Text className="text-xs text-green-700">{task.date}</Text>
-										</View>
+								{/* Page indicators positioned in the flow */}
+								<View className="items-center mb-5">
+									<View className="flex-row justify-center items-center py-2">
+										{mockVehicles.map((_, i) => (
+											<AnimatedIndicator 
+												key={i}
+												isActive={i === currentIndex}
+												onPress={() => goToVehicle(i)}
+											/>
+										))}
 									</View>
-								))}
-							</View>
+								</View>
 
-							{/* Stats/Quick Info */}
-							<View className="grid grid-cols-3 gap-2 mb-4">
-								<View className="bg-white rounded-xl p-3 shadow-sm items-center">
-									<Fuel size={18} className="text-blue-500 mb-1" />
-									<Text className="text-xs text-gray-600">Neste service</Text>
-									<Text className="text-sm font-bold text-gray-900">1200 km</Text>
-								</View>
-								<View className="bg-white rounded-xl p-3 shadow-sm items-center">
-									<Battery size={18} className="text-blue-500 mb-1" />
-									<Text className="text-xs text-gray-600">Batteri</Text>
-									<Text className="text-sm font-bold text-gray-900">God</Text>
-								</View>
-								<View className="bg-white rounded-xl p-3 shadow-sm items-center">
-									<PenLine size={18} className="text-blue-500 mb-1" />
-									<Text className="text-xs text-gray-600">Notater</Text>
-									<Text className="text-sm font-bold text-gray-900">3</Text>
-								</View>
-							</View>
-						</ScrollView>
-					</View>
-				)}
-			/>
-
-			{/* Page indicator */}
-			<View className="flex-row justify-center items-center absolute bottom-4 left-0 right-0 z-10">
-				{mockVehicles.map((_, i) => (
-					<View
-						key={i}
-						className={`mx-1 rounded-full ${i === currentIndex ? "bg-gray-900" : "bg-gray-300"}`}
-						style={{ width: i === currentIndex ? 8 : 6, height: 6 }}
-					/>
-				))}
+								{/* Stats/Quick Info */}
+								<AnimatedView entering={FadeInDown.delay(500).duration(600)} className="flex-row mb-10">
+									<View className="flex-1 bg-white rounded-xl p-4 shadow-sm items-center mr-2" style={{ elevation: 2 }}>
+										<Fuel size={22} className="text-blue-500 mb-1.5" />
+										<Text className="text-sm text-gray-600 text-center">Neste service</Text>
+										<Text className="text-base font-bold text-gray-900">1200 km</Text>
+									</View>
+									<View className="flex-1 bg-white rounded-xl p-4 shadow-sm items-center mx-2" style={{ elevation: 2 }}>
+										<Battery size={22} className="text-blue-500 mb-1.5" />
+										<Text className="text-sm text-gray-600 text-center">Batteri</Text>
+										<Text className="text-base font-bold text-gray-900">God</Text>
+									</View>
+									<View className="flex-1 bg-white rounded-xl p-4 shadow-sm items-center ml-2" style={{ elevation: 2 }}>
+										<PenLine size={22} className="text-blue-500 mb-1.5" />
+										<Text className="text-sm text-gray-600 text-center">Notater</Text>
+										<Text className="text-base font-bold text-gray-900">3</Text>
+									</View>
+								</AnimatedView>
+							</ScrollView>
+						</View>
+					))}
+				</PagerView>
 			</View>
 		</SafeAreaView>
 	);
