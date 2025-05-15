@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { View, useWindowDimensions, Pressable, ScrollView, RefreshControl } from "react-native";
+import { View, useWindowDimensions, Pressable, ScrollView, RefreshControl, Alert } from "react-native";
 import { useState, useRef, useMemo, useCallback } from "react";
 import Animated, { FadeInDown, FadeIn, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import PagerView from 'react-native-pager-view';
@@ -7,7 +7,8 @@ import PagerView from 'react-native-pager-view';
 import { Text } from "@/components/ui/text";
 import { Vehicle } from "@/types/vehicle";
 import { SafeAreaView } from "@/components/safe-area-view";
-import { ClipboardList, Wrench, ChevronRight, Car, Bike, CheckCircle2, Clock, ArrowRight, Plus, Calendar, DropletIcon, Fuel, Battery, PenLine, Sparkles, WrenchIcon } from "lucide-react-native";
+import { ClipboardList, Wrench, ChevronRight, Car, Bike, CheckCircle2, Clock, ArrowRight, Plus, Calendar, DropletIcon, Fuel, Battery, PenLine, Sparkles, WrenchIcon, Users, ArrowLeftRight, MoreVertical, Pencil, FileText } from "lucide-react-native";
+import { ActionSheet } from "../../../components/action-sheet";
 
 // Animated components
 const AnimatedView = Animated.createAnimatedComponent(View);
@@ -59,6 +60,12 @@ const mockTodos = [
 const mockCompletedTasks = [
 	{ id: "1", title: "Byttet bremseklosser", date: "2d", icon: <Wrench size={14} className="text-green-600" /> },
 	{ id: "2", title: "Fylt spylervæske", date: "1u", icon: <DropletIcon size={14} className="text-green-600" /> },
+];
+
+// Mock notes data
+const mockNotes = [
+	{ id: "1", title: "Riper i lakken", date: "3d", icon: <Pencil size={14} className="text-indigo-600" /> },
+	{ id: "2", title: "Kjøring i utlandet", date: "2u", icon: <FileText size={14} className="text-indigo-600" /> },
 ];
 
 // Quick action button component with new design
@@ -180,6 +187,7 @@ export default function Home() {
 	
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [refreshing, setRefreshing] = useState(false);
+	const [showActionMenu, setShowActionMenu] = useState(false);
 	const pagerRef = useRef<PagerView>(null);
 	const currentVehicle = mockVehicles[currentIndex];
 	
@@ -218,12 +226,52 @@ export default function Home() {
 		router.push(`/vehicle/${vehicleId}/maintenance/history`);
 	};
 	
+	// New handlers for notes
+	const handleAddNote = (vehicleId: string) => {
+		router.push(`/vehicle/${vehicleId}/notes/new`);
+	};
+
+	const handleViewAllNotes = (vehicleId: string) => {
+		router.push(`/vehicle/${vehicleId}/notes`);
+	};
+	
 	// Handle manual navigation to specific vehicle
 	const goToVehicle = (index: number) => {
 		if (pagerRef.current) {
 			pagerRef.current.setPage(index);
 		}
 	};
+
+	// Handle action menu options
+	const handleAddPeople = (vehicleId: string) => {
+		router.push(`/vehicle/${vehicleId}/people/add`);
+		setShowActionMenu(false);
+	};
+
+	const handleTransferVehicle = (vehicleId: string) => {
+		router.push(`/vehicle/${vehicleId}/transfer`);
+		setShowActionMenu(false);
+	};
+
+	// Menu toggle function
+	const toggleActionMenu = () => {
+		setShowActionMenu(prev => !prev);
+	};
+
+	const actionMenuOptions = [
+		{
+			id: 'add-people',
+			label: 'Legg til personer',
+			icon: <Users size={20} className="text-indigo-600" />,
+			onPress: () => handleAddPeople(currentVehicle.id)
+		},
+		{
+			id: 'transfer',
+			label: 'Overfør kjøretøy',
+			icon: <ArrowLeftRight size={20} className="text-purple-600" />,
+			onPress: () => handleTransferVehicle(currentVehicle.id)
+		}
+	];
 
 	return (
 			<SafeAreaView edges={["top"]} className="flex-1" style={{ backgroundColor: currentBgColor }}>
@@ -281,22 +329,34 @@ export default function Home() {
 											</View>
 										</View>
 
-										{/* Icon */}
-										<View 
-											className={`w-20 h-20 rounded-full ${
-												item.type === 'bike' ? 'bg-purple-100' : 'bg-blue-100'
-											} items-center justify-center`}
-											style={{ elevation: 3 }}
+										{/* Icon as Menu Trigger - Clean Design */}
+										<Pressable
+											onPress={() => toggleActionMenu()}
+											className="relative"
+											android_ripple={{ color: 'rgba(0,0,0,0.2)', borderless: false, radius: 42 }}
+											hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+											style={({ pressed }) => [
+												{ opacity: pressed ? 0.8 : 1 }
+											]}
 										>
-											{item.type === 'bike' ? (
-												<Bike size={36} className="text-purple-700" />
-											) : (
-												<Car size={36} className="text-blue-700" />
-											)}
-											<View className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-green-400 border border-white items-center justify-center">
-												<Sparkles size={12} className="text-white" />
+											<View 
+												className={`w-20 h-20 rounded-full ${
+													item.type === 'bike' ? 'bg-purple-100' : 'bg-blue-100'
+												} items-center justify-center`}
+												style={{ elevation: 3 }}
+											>
+												{item.type === 'bike' ? (
+													<Bike size={36} className="text-purple-700" />
+												) : (
+													<Car size={36} className="text-blue-700" />
+												)}
+												
+												{/* Indicator dot */}
+												<View className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-green-400 border border-white items-center justify-center">
+													<Sparkles size={12} className="text-white" />
+												</View>
 											</View>
-										</View>
+										</Pressable>
 									</AnimatedView>
 									
 									{/* Quick Actions */}
@@ -311,6 +371,12 @@ export default function Home() {
 											label="Vedlikehold" 
 											icon={<Wrench size={18} color="white" />} 
 											onPress={() => handleLogMaintenance(item.id)}
+											color="bg-[#22000A]"
+										/>
+										<QuickAction 
+											label="Nytt notat" 
+											icon={<Pencil size={18} color="white" />} 
+											onPress={() => handleAddNote(item.id)}
 											color="bg-[#22000A]"
 										/>
 									</AnimatedView>
@@ -338,7 +404,7 @@ export default function Home() {
 									</AnimatedView>
 
 									{/* Recently Completed Section */}
-									<AnimatedView entering={FadeInDown.delay(400).duration(600)} className="bg-white rounded-2xl p-5 mb-5" style={{ elevation: 2 }}>
+									<AnimatedView entering={FadeInDown.delay(400).duration(600)} className="bg-white rounded-2xl p-5 mb-4" style={{ elevation: 2 }}>
 										<SectionHeader 
 											title="Fullført" 
 											icon={<CheckCircle2 size={18} className="text-green-500" />}
@@ -356,6 +422,36 @@ export default function Home() {
 												taskId={task.id}
 												vehicleId={item.id}
 											/>
+										))}
+									</AnimatedView>
+									
+									{/* Notes Section */}
+									<AnimatedView entering={FadeInDown.delay(450).duration(600)} className="bg-white rounded-2xl p-5 mb-4" style={{ elevation: 2 }}>
+										<SectionHeader 
+											title="Notater" 
+											icon={<FileText size={18} className="text-indigo-500" />}
+											onViewMore={() => handleViewAllNotes(item.id)} 
+										/>
+										
+										{mockNotes.map(note => (
+											<View key={note.id} className="border-b border-gray-50">
+												<Pressable 
+													className="flex-row items-center py-3 px-4 active:bg-gray-50 active:rounded-xl my-0.5"
+													onPress={() => {
+														console.log(`Navigating to note: ${note.id}`);
+														router.push(`/vehicle/${item.id}/notes/${note.id}`);
+													}}
+													android_ripple={{ color: 'rgba(0,0,0,0.05)' }}
+												>
+													<View className="w-8 h-8 rounded-lg bg-indigo-50 items-center justify-center mr-3">
+														{note.icon}
+													</View>
+													<Text className="text-base font-medium text-gray-900 flex-1">{note.title}</Text>
+													<View className="bg-indigo-50 rounded-full px-2.5 py-1">
+														<Text className="text-sm text-indigo-700">{note.date}</Text>
+													</View>
+												</Pressable>
+											</View>
 										))}
 									</AnimatedView>
 									
@@ -409,6 +505,15 @@ export default function Home() {
 						);
 					})}
 				</PagerView>
+
+				{/* Action Menu */}
+				{showActionMenu && (
+					<ActionSheet
+						title="Administrer kjøretøy"
+						options={actionMenuOptions}
+						onClose={() => setShowActionMenu(false)}
+					/>
+				)}
 			</SafeAreaView>
 	);
 }
