@@ -21,7 +21,7 @@ export default function WelcomeScreen() {
 		<SafeAreaView className="flex flex-1 bg-background p-4">
 			<View className="flex flex-1 items-center justify-center gap-y-4 web:m-4">
 				<Image source={appIcon} className="w-16 h-16 rounded-xl" />
-				<H1 className="text-center">Velkommen til Min Garasje</H1>
+				<H1 className="text-center">Velkommen til pitstopp</H1>
 				<Muted className="text-center">
 					Hold oversikt over kjøretøyene dine og få viktig informasjon om service, 
 					vedlikehold og forsikring samlet på ett sted.
