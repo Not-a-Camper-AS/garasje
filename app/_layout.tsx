@@ -19,7 +19,7 @@ export default function AppLayout() {
 					options={{
 						presentation: "modal",
 						headerShown: true,
-						headerTitle: "Sign Up",
+						headerTitle: "Registrer deg",
 						headerStyle: {
 							backgroundColor:
 								colorScheme === "dark"
@@ -38,7 +38,7 @@ export default function AppLayout() {
 					options={{
 						presentation: "modal",
 						headerShown: true,
-						headerTitle: "Sign In",
+						headerTitle: "Logg inn",
 						headerStyle: {
 							backgroundColor:
 								colorScheme === "dark"

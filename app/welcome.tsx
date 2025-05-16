@@ -21,10 +21,10 @@ export default function WelcomeScreen() {
 		<SafeAreaView className="flex flex-1 bg-background p-4">
 			<View className="flex flex-1 items-center justify-center gap-y-4 web:m-4">
 				<Image source={appIcon} className="w-16 h-16 rounded-xl" />
-				<H1 className="text-center">Velkommen til Expo Supabase Starter</H1>
+				<H1 className="text-center">Velkommen til Min Garasje</H1>
 				<Muted className="text-center">
-					Et omfattende startprosjekt for utvikling av React Native- og Expo-applikasjoner
-					med Supabase som backend.
+					Hold oversikt over kjøretøyene dine og få viktig informasjon om service, 
+					vedlikehold og forsikring samlet på ett sted.
 				</Muted>
 			</View>
 			<View className="flex flex-col gap-y-4 web:m-4">
@@ -35,7 +35,7 @@ export default function WelcomeScreen() {
 						router.push("/sign-up");
 					}}
 				>
-					<Text>Registrer deg</Text>
+					<Text>Kom i gang</Text>
 				</Button>
 				<Button
 					size="default"
