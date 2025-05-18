@@ -52,27 +52,7 @@ import { useAuth } from "@/context/supabase-provider";
 // Animated components
 const AnimatedView = Animated.createAnimatedComponent(View);
 
-// Mock to-do and completed tasks data
-const mockTodos = [
-	{
-		id: "1",
-		title: "Skifte olje",
-		dueDate: "Idag",
-		icon: <DropletIcon size={14} className="text-amber-600" />,
-	},
-	{
-		id: "2",
-		title: "Sjekk dekktrykk",
-		dueDate: "Imorgen",
-		icon: <Wrench size={14} className="text-amber-600" />,
-	},
-	{
-		id: "3",
-		title: "Vask bilen",
-		dueDate: "Neste uke",
-		icon: <DropletIcon size={14} className="text-amber-600" />,
-	},
-];
+
 
 const mockCompletedTasks = [
 	{
@@ -168,7 +148,7 @@ const SectionHeader = ({
 	onViewMore: () => void;
 	icon: React.ReactNode;
 }) => (
-	<View className="flex-row items-center justify-between mb-3">
+	<View className="flex-row items-center justify-between mb-3 px-3 py-3">
 		<View className="flex-row items-center">
 			{icon}
 			<Text className="text-lg font-bold text-gray-900 ml-1.5">{title}</Text>
@@ -195,6 +175,7 @@ const TaskItem = ({
 	vehicleId,
 	rawDate,
 	onPress,
+	isLast = false,
 }: {
 	title: string;
 	date: string;
@@ -205,6 +186,7 @@ const TaskItem = ({
 	vehicleId?: string;
 	rawDate?: string | Date;
 	onPress?: () => void;
+	isLast?: boolean;
 }) => {
 	// Format date if rawDate is provided, otherwise use the provided date string
 	const displayDate = rawDate ? formatRelativeDate(rawDate) : date;
@@ -219,9 +201,9 @@ const TaskItem = ({
 	};
 
 	return (
-		<View className="border-b border-gray-50">
+		<View className={!isLast ? "border-b border-gray-50" : ""}>
 			<Pressable
-				className="flex-row items-center py-3 px-4 active:bg-gray-50 active:rounded-xl my-0.5"
+				className="flex-row items-center py-3 px-3 active:bg-gray-50 active:rounded-xl my-0.5"
 				onPress={handlePress}
 			>
 				<View
@@ -229,12 +211,15 @@ const TaskItem = ({
 				>
 					{icon}
 				</View>
-				<Text className="text-base font-medium text-gray-900 flex-1">
-					{title}
-				</Text>
-				<View className={`${color} rounded-full px-2.5 py-1`}>
-					<Text className={`text-sm ${textColor}`}>{displayDate}</Text>
+				<View className="flex-1">
+					<Text className="text-base font-medium text-gray-900" numberOfLines={1}>
+						{title}
+					</Text>
+					<Text className="text-sm text-gray-500 mt-0.5">
+						{displayDate}
+					</Text>
 				</View>
+				<ChevronRight size={18} className="text-gray-400 ml-2" />
 			</Pressable>
 		</View>
 	);
@@ -551,7 +536,7 @@ export default function Home() {
 									{/* Recent To-dos Section */}
 									<AnimatedView
 										entering={FadeInDown.delay(300).duration(600)}
-										className="bg-white rounded-2xl p-5 mb-4"
+										className="bg-white rounded-2xl mb-4 p-2"
 										style={{ elevation: 2 }}
 									>
 										<SectionHeader
@@ -560,25 +545,41 @@ export default function Home() {
 											onViewMore={() => handleViewAllTodos(item.id)}
 										/>
 
-										{todos.data?.map((todo, todoIndex) => (
-											<TaskItem
-												key={todo.id}
-												title={todo.task}
-												date={todo.dueDate}
-												icon={getTodoIcon(todo.type, todo.completed)}
-												color="bg-amber-50"
-												textColor="text-amber-700"
-												taskId={todo.id}
-												vehicleId={item.id}
-												rawDate={todo.dueDate}
-											/>
-										))}
+										{todos.data?.length === 0 ? (
+											<Pressable
+												onPress={() => handleAddTasks(item.id)}
+												className="py-6 px-3 items-center"
+											>
+												<Clock size={24} className="text-gray-400 mb-2" />
+												<Text className="text-gray-500 text-center mb-1">
+													Ingen planlagte oppgaver
+												</Text>
+												<Text className="text-indigo-600 font-medium">
+													Legg til en oppgave
+												</Text>
+											</Pressable>
+										) : (
+											todos.data?.map((todo, todoIndex) => (
+												<TaskItem
+													key={todo.id}
+													title={todo.task}
+													date={todo.dueDate}
+													icon={getTodoIcon(todo.type, todo.completed)}
+													color="bg-amber-50"
+													textColor="text-amber-700"
+													taskId={todo.id}
+													vehicleId={item.id}
+													rawDate={todo.dueDate}
+													isLast={todoIndex === todos.data.length - 1}
+												/>
+											))
+										)}
 									</AnimatedView>
 
 									{/* Recently Completed Section */}
 									<AnimatedView
 										entering={FadeInDown.delay(400).duration(600)}
-										className="bg-white rounded-2xl p-5 mb-4"
+										className="bg-white rounded-2xl mb-4 p-2"
 										style={{ elevation: 2 }}
 									>
 										<SectionHeader
@@ -589,25 +590,41 @@ export default function Home() {
 											onViewMore={() => handleViewAllCompleted(item.id)}
 										/>
 
-										{completedTasks.data?.map((task) => (
-											<TaskItem
-												key={task.id}
-												title={task.title}
-												date={task.date}
-												icon={task.icon}
-												color="bg-green-50"
-												textColor="text-green-700"
-												taskId={task.id}
-												vehicleId={item.id}
-												rawDate={task.rawDate}
-											/>
-										))}
+										{completedTasks.data?.length === 0 ? (
+											<Pressable
+												onPress={() => handleLogMaintenance(item.id)}
+												className="py-6 px-3 items-center"
+											>
+												<CheckCircle2 size={24} className="text-gray-400 mb-2" />
+												<Text className="text-gray-500 text-center mb-1">
+													Ingen utført vedlikehold
+												</Text>
+												<Text className="text-indigo-600 font-medium">
+													Logg vedlikehold
+												</Text>
+											</Pressable>
+										) : (
+											completedTasks.data?.map((task, taskIndex) => (
+												<TaskItem
+													key={task.id}
+													title={task.title}
+													date={task.date}
+													icon={task.icon}
+													color="bg-green-50"
+													textColor="text-green-700"
+													taskId={task.id}
+													vehicleId={item.id}
+													rawDate={task.rawDate}
+													isLast={taskIndex === completedTasks.data.length - 1}
+												/>
+											))
+										)}
 									</AnimatedView>
 
 									{/* Notes Section */}
 									<AnimatedView
 										entering={FadeInDown.delay(450).duration(600)}
-										className="bg-white rounded-2xl p-5 mb-4"
+										className="bg-white rounded-2xl mb-4 p-2"
 										style={{ elevation: 2 }}
 									>
 										<SectionHeader
@@ -616,22 +633,38 @@ export default function Home() {
 											onViewMore={() => handleViewAllNotes(item.id)}
 										/>
 
-										{notes.data?.map((note) => (
-											<TaskItem
-												key={note.id}
-												title={note.title}
-												date={note.date}
-												icon={note.icon}
-												color="bg-indigo-50"
-												textColor="text-indigo-700"
-												taskId={note.id}
-												vehicleId={item.id}
-												rawDate={note.rawDate}
-												onPress={() =>
-													router.push(`/vehicle/${item.id}/notes/${note.id}`)
-												}
-											/>
-										))}
+										{notes.data?.length === 0 ? (
+											<Pressable
+												onPress={() => handleAddNote(item.id)}
+												className="py-6 px-3 items-center"
+											>
+												<FileText size={24} className="text-gray-400 mb-2" />
+												<Text className="text-gray-500 text-center mb-1">
+													Ingen notater
+												</Text>
+												<Text className="text-indigo-600 font-medium">
+													Legg til et notat
+												</Text>
+											</Pressable>
+										) : (
+											notes.data?.map((note, noteIndex) => (
+												<TaskItem
+													key={note.id}
+													title={note.title}
+													date={note.date}
+													icon={note.icon}
+													color="bg-indigo-50"
+													textColor="text-indigo-700"
+													taskId={note.id}
+													vehicleId={item.id}
+													rawDate={note.rawDate}
+													onPress={() =>
+														router.push(`/vehicle/${item.id}/notes/${note.id}`)
+													}
+													isLast={noteIndex === notes.data.length - 1}
+												/>
+											))
+										)}
 									</AnimatedView>
 
 									{/* Stats/Quick Info */}
