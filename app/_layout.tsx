@@ -5,12 +5,16 @@ import { Stack } from "expo-router";
 import { AuthProvider } from "@/context/supabase-provider";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient();
 
 export default function AppLayout() {
 	const { colorScheme } = useColorScheme();
 
 	return (
 		<AuthProvider>
+			<QueryClientProvider client={queryClient}>
 			<Stack screenOptions={{ headerShown: false, gestureEnabled: false }}>
 				<Stack.Screen name="(protected)" />
 				<Stack.Screen name="welcome" />
@@ -51,8 +55,9 @@ export default function AppLayout() {
 								: colors.light.foreground,
 						gestureEnabled: true,
 					}}
-				/>
-			</Stack>
+					/>
+				</Stack>
+			</QueryClientProvider>
 		</AuthProvider>
 	);
 }

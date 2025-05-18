@@ -4,9 +4,9 @@ export interface Vehicle {
   model: string;
   year: number;
   licensePlate: string;
-  color?: string;
+  color: string;
   imageUrl?: string;
-  type?: 'car' | 'bike';
-  nickname?: string;
-  bgColor?: string;
+  type: 'car' | 'bike';
+  nickname: string;
+  bgColor: string;
 } 

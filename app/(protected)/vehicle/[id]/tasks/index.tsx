@@ -1,55 +1,37 @@
-import { View, ScrollView, Pressable } from "react-native";
+import { View, ScrollView, Pressable, Alert, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, Stack, router } from "expo-router";
 import { useState, useEffect } from "react";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
-import { Clock, Plus, DropletIcon, Wrench, ArrowLeft } from "lucide-react-native";
+import { Clock, Plus, DropletIcon, Wrench, ArrowLeft, Battery, Fuel } from "lucide-react-native";
+import { useAuth } from "@/context/supabase-provider";
+import { supabase } from "@/config/supabase";
+import { Vehicle } from "@/types/vehicle";
+import { getTodos } from "@/lib/db";
+import { TodoTask } from "@/types/todo";
+import { format } from "date-fns";
 
-// Mock tasks for demonstration
-const mockTasks = [
-  { id: "1", title: "Skifte olje", dueDate: "Idag", icon: <DropletIcon size={14} color="#F59E0B" /> },
-  { id: "2", title: "Sjekk dekktrykk", dueDate: "Imorgen", icon: <Wrench size={14} color="#F59E0B" /> },
-  { id: "3", title: "Vask bilen", dueDate: "Neste uke", icon: <DropletIcon size={14} color="#F59E0B" /> },
-  { id: "4", title: "Kontroller lys", dueDate: "Neste uke", icon: <Wrench size={14} color="#F59E0B" /> },
-  { id: "5", title: "Bytt vindusviskere", dueDate: "Neste måned", icon: <Wrench size={14} color="#F59E0B" /> },
-];
 
-// Get mock vehicle based on ID
-const getMockVehicle = (id: string) => {
-  const vehicles = [
-    {
-      id: "1",
-      make: "Tesla",
-      model: "Model 3 Long Range",
-      year: 2022,
-      licensePlate: "EE 47617",
-      color: "Grå",
-      type: "car",
-      nickname: "Millenial Falcon",
-    },
-    {
-      id: "2",
-      make: "Honda",
-      model: "Civic",
-      year: 2021,
-      licensePlate: "XYZ789",
-      color: "Blå",
-      type: "car",
-      nickname: "Min Honda",
-    },
-    {
-      id: "3",
-      make: "Bike",
-      model: "Mountain Bike",
-      year: 2022,
-      licensePlate: "DEF456",
-      color: "Rød",
-      type: "bike",
-      nickname: "Min Sykkel",
-    },
-  ];
+// Get icon for todo task based on task type
+const getTodoIcon = (taskType: string | undefined, isCompleted = false) => {
+  const color = isCompleted ? "#10B981" : "#F59E0B";
   
-  return vehicles.find(v => v.id === id) || vehicles[0];
+  switch (taskType) {
+    case "oil":
+      return <DropletIcon size={14} color={color} />;
+    case "maintenance":
+      return <Wrench size={14} color={color} />;
+    case "wash":
+      return <DropletIcon size={14} color={color} />;
+    case "inspection":
+      return <Wrench size={14} color={color} />;
+    case "battery":
+      return <Battery size={14} color={color} />;
+    case "fuel":
+      return <Fuel size={14} color={color} />;
+    default:
+      return <Clock size={14} color={color} />;
+  }
 };
 
 const TaskItem = ({ 
@@ -79,17 +61,84 @@ const TaskItem = ({
       </View>
       <Text className="text-base font-medium text-gray-900 flex-1">{title}</Text>
       <View className={`${color} rounded-full px-3 py-1.5`}>
-        <Text className={`text-sm ${textColor}`}>{date}</Text>
+        <Text className={`text-sm ${textColor}`}>{format(date, 'dd.MM.yyyy')}</Text>
       </View>
     </Pressable>
   </View>
 );
 
+
 export default function VehicleTasks() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [vehicle, setVehicle] = useState(getMockVehicle(id as string));
+  const { session } = useAuth();
+  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
+  const [tasks, setTasks] = useState<TodoTask[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  // In a real app, you would fetch tasks for this specific vehicle
+  // Fetch real vehicle data and tasks
+  useEffect(() => {
+    const fetchVehicleAndTasks = async () => {
+      if (!id || !session?.user.id) return;
+      
+      try {
+        setLoading(true);
+        
+        // Fetch vehicle
+        const { data: vehicleData, error: vehicleError } = await supabase
+          .from('vehicles')
+          .select('*')
+          .eq('id', id)
+          .eq('user_id', session.user.id)
+          .single();
+          
+        if (vehicleError) {
+          console.error('Error fetching vehicle:', vehicleError);
+          Alert.alert('Error', 'Could not load vehicle details');
+          router.back();
+          return;
+        }
+        
+        if (vehicleData) {
+          setVehicle(vehicleData as Vehicle);
+          
+          // Fetch tasks for this vehicle
+          try {
+            const tasksData = await getTodos(session.user.id, id as string);
+            setTasks(tasksData || []);
+          } catch (taskError) {
+            console.error('Error fetching tasks:', taskError);
+            Alert.alert('Error', 'Could not load tasks');
+          }
+        } else {
+          Alert.alert('Not Found', 'Vehicle not found');
+          router.back();
+        }
+      } catch (error) {
+        console.error('Error in fetch effect:', error);
+        Alert.alert('Error', 'Something went wrong');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchVehicleAndTasks();
+  }, [id, session?.user.id]);
+  
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 bg-white justify-center items-center">
+        <ActivityIndicator size="large" color="#22000A" />
+      </SafeAreaView>
+    );
+  }
+  
+  if (!vehicle) {
+    return (
+      <SafeAreaView className="flex-1 bg-white justify-center items-center">
+        <Text>Vehicle not found</Text>
+      </SafeAreaView>
+    );
+  }
   
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -127,12 +176,12 @@ export default function VehicleTasks() {
             <Text className="text-lg font-bold ml-2">Kommende vedlikehold</Text>
           </View>
           
-          {mockTasks.map(task => (
+          {tasks.map(task => (
             <TaskItem
               key={task.id}
-              title={task.title}
+              title={task.task}
               date={task.dueDate}
-              icon={task.icon}
+              icon={getTodoIcon(task.type)}
               color="bg-amber-50"
               textColor="text-amber-700"
               taskId={task.id}
@@ -140,9 +189,15 @@ export default function VehicleTasks() {
             />
           ))}
 
-          {mockTasks.length === 0 && (
+          {tasks.length === 0 && (
             <View className="py-10 items-center">
               <Text className="text-gray-500 text-center">Ingen aktive oppgaver</Text>
+              <Pressable
+                onPress={() => router.push(`/vehicle/${id}/tasks/new`)}
+                className="mt-4 bg-[#22000A] rounded-full px-5 py-2"
+              >
+                <Text className="text-white font-medium">Legg til oppgave</Text>
+              </Pressable>
             </View>
           )}
         </ScrollView>

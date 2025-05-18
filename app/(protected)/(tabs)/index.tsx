@@ -1,80 +1,121 @@
 import { router } from "expo-router";
-import { View, useWindowDimensions, Pressable, ScrollView, RefreshControl, Alert } from "react-native";
+import {
+	View,
+	useWindowDimensions,
+	Pressable,
+	ScrollView,
+	RefreshControl,
+	Alert,
+} from "react-native";
 import { useState, useRef, useMemo, useCallback } from "react";
-import Animated, { FadeInDown, FadeIn, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
-import PagerView from 'react-native-pager-view';
+import Animated, {
+	FadeInDown,
+	FadeIn,
+	useAnimatedStyle,
+	useSharedValue,
+	withTiming,
+} from "react-native-reanimated";
+import PagerView from "react-native-pager-view";
 
 import { Text } from "@/components/ui/text";
 import { Vehicle } from "@/types/vehicle";
 import { SafeAreaView } from "@/components/safe-area-view";
-import { ClipboardList, Wrench, ChevronRight, Car, Bike, CheckCircle2, Clock, ArrowRight, Plus, Calendar, DropletIcon, Fuel, Battery, PenLine, Sparkles, WrenchIcon, Users, ArrowLeftRight, MoreVertical, Pencil, FileText } from "lucide-react-native";
+import { formatRelativeDate } from "@/lib/date-utils";
+import {
+	ClipboardList,
+	Wrench,
+	ChevronRight,
+	Car,
+	Bike,
+	CheckCircle2,
+	Clock,
+	ArrowRight,
+	Plus,
+	Calendar,
+	DropletIcon,
+	Fuel,
+	Battery,
+	PenLine,
+	Sparkles,
+	WrenchIcon,
+	Users,
+	ArrowLeftRight,
+	MoreVertical,
+	Pencil,
+	FileText,
+} from "lucide-react-native";
 import { ActionSheet } from "../../../components/action-sheet";
+import { useQuery } from "@tanstack/react-query";
+import { getTodos, getVehicles } from "@/lib/db";
+import { useAuth } from "@/context/supabase-provider";
 
 // Animated components
 const AnimatedView = Animated.createAnimatedComponent(View);
 
-// Temporary mock data - replace with actual data from your backend
-const mockVehicles: Vehicle[] = [
+// Mock to-do and completed tasks data
+const mockTodos = [
 	{
 		id: "1",
-		make: "Tesla",
-		model: "Model 3 Long Range",
-		year: 2022,
-		licensePlate: "EE 47617",
-		color: "Grå",
-		type: "car",
-		nickname: "Millenial Falcon",
-		bgColor: "#FFC193",
+		title: "Skifte olje",
+		dueDate: "Idag",
+		icon: <DropletIcon size={14} className="text-amber-600" />,
 	},
 	{
 		id: "2",
-		make: "Kawasaki",
-		model: "Ninja ZX-10R",
-		year: 2022,
-		licensePlate: "DE 54656",
-		color: "Grønn",
-		type: "bike",
-		nickname: "Ninja turtle",
-		bgColor: "#B9FFC2",
+		title: "Sjekk dekktrykk",
+		dueDate: "Imorgen",
+		icon: <Wrench size={14} className="text-amber-600" />,
 	},
 	{
 		id: "3",
-		make: "Honda",
-		model: "Civic",
-		year: 2021,
-		licensePlate: "XY 85789",
-		color: "Blå",
-		type: "car",
-		nickname: "Min Honda",
-		bgColor: "#FFFFFF",
+		title: "Vask bilen",
+		dueDate: "Neste uke",
+		icon: <DropletIcon size={14} className="text-amber-600" />,
 	},
 ];
 
-// Mock to-do and completed tasks data
-const mockTodos = [
-	{ id: "1", title: "Skifte olje", dueDate: "Idag", icon: <DropletIcon size={14} className="text-amber-600" /> },
-	{ id: "2", title: "Sjekk dekktrykk", dueDate: "Imorgen", icon: <Wrench size={14} className="text-amber-600" /> },
-	{ id: "3", title: "Vask bilen", dueDate: "Neste uke", icon: <DropletIcon size={14} className="text-amber-600" /> },
-];
-
 const mockCompletedTasks = [
-	{ id: "1", title: "Byttet bremseklosser", date: "2d", icon: <Wrench size={14} className="text-green-600" /> },
-	{ id: "2", title: "Fylt spylervæske", date: "1u", icon: <DropletIcon size={14} className="text-green-600" /> },
+	{
+		id: "1",
+		title: "Byttet bremseklosser",
+		date: "2d",
+		rawDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+		icon: <Wrench size={14} className="text-green-600" />,
+	},
+	{
+		id: "2",
+		title: "Fylt spylervæske",
+		date: "1u",
+		rawDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 1 week ago
+		icon: <DropletIcon size={14} className="text-green-600" />,
+	},
 ];
 
 // Mock notes data
 const mockNotes = [
-	{ id: "1", title: "Riper i lakken", date: "3d", icon: <Pencil size={14} className="text-indigo-600" /> },
-	{ id: "2", title: "Kjøring i utlandet", date: "2u", icon: <FileText size={14} className="text-indigo-600" /> },
+	{
+		id: "1",
+		title: "Riper i lakken",
+		date: "3d",
+		rawDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
+		icon: <Pencil size={14} className="text-indigo-600" />,
+	},
+	{
+		id: "2",
+		title: "Kjøring i utlandet",
+		date: "2u",
+		rawDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(), // 2 weeks ago
+		icon: <FileText size={14} className="text-indigo-600" />,
+	},
 ];
 
 // Quick action button component with new design
-const QuickAction = ({ 
-	label, 
-	icon, 
+const QuickAction = ({
+	label,
+	icon,
 	onPress,
 	color = "bg-indigo-500",
-	textColor = "text-white"
+	textColor = "text-white",
 }: {
 	label: string;
 	icon: React.ReactNode;
@@ -82,24 +123,46 @@ const QuickAction = ({
 	color?: string;
 	textColor?: string;
 }) => (
-	<Pressable 
+	<Pressable
 		className={`${color} rounded-xl py-3 px-4 flex-row items-center mr-3 mb-3 shadow-sm`}
 		style={{ elevation: 3 }}
 		onPress={onPress}
-		android_ripple={{ color: 'rgba(0,0,0,0.1)', borderless: false, radius: 20 }}
+		android_ripple={{ color: "rgba(0,0,0,0.1)", borderless: false, radius: 20 }}
 	>
-		<Text className={`text-base font-black italic mr-2.5 ${textColor}`}>{label}</Text>
-		<View className=" rounded-lg p-1.5 ">
-			{icon}
-		</View>
+		<Text className={`text-base font-black italic mr-2.5 ${textColor}`}>
+			{label}
+		</Text>
+		<View className=" rounded-lg p-1.5 ">{icon}</View>
 	</Pressable>
 );
+
+// Get icon for todo task based on task type
+const getTodoIcon = (taskType: string | undefined, isCompleted = false) => {
+	const color = isCompleted ? "text-green-600" : "text-amber-600";
+	
+	switch (taskType) {
+		case "oil":
+			return <DropletIcon size={14} className={color} />;
+		case "maintenance":
+			return <WrenchIcon size={14} className={color} />;
+		case "wash":
+			return <DropletIcon size={14} className={color} />;
+		case "inspection":
+			return <Wrench size={14} className={color} />;
+		case "battery":
+			return <Battery size={14} className={color} />;
+		case "fuel":
+			return <Fuel size={14} className={color} />;
+		default:
+			return <Clock size={14} className={color} />;
+	}
+};
 
 // Section Header component
 const SectionHeader = ({
 	title,
 	onViewMore,
-	icon
+	icon,
 }: {
 	title: string;
 	onViewMore: () => void;
@@ -110,8 +173,8 @@ const SectionHeader = ({
 			{icon}
 			<Text className="text-lg font-bold text-gray-900 ml-1.5">{title}</Text>
 		</View>
-		<Pressable 
-			onPress={onViewMore} 
+		<Pressable
+			onPress={onViewMore}
 			className="flex-row items-center py-1 px-2 rounded-full active:bg-gray-100"
 			hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
 		>
@@ -122,57 +185,79 @@ const SectionHeader = ({
 );
 
 // Task item component
-const TaskItem = ({ 
-	title, 
-	date, 
-	icon, 
+const TaskItem = ({
+	title,
+	date,
+	icon,
 	color = "bg-amber-50",
 	textColor = "text-amber-700",
 	taskId,
-	vehicleId
-}: { 
-	title: string; 
+	vehicleId,
+	rawDate,
+	onPress,
+}: {
+	title: string;
 	date: string;
 	icon: React.ReactNode;
 	color?: string;
 	textColor?: string;
 	taskId?: string;
 	vehicleId?: string;
-}) => (
-	<View className="border-b border-gray-50">
-		<Pressable 
-			className="flex-row items-center py-3 px-4 active:bg-gray-50 active:rounded-xl my-0.5"
-			onPress={() => taskId && vehicleId ? router.push(`/vehicle/${vehicleId}/tasks/${taskId}`) : null}
-		>
-			<View className={`w-8 h-8 rounded-lg ${color} items-center justify-center mr-3`}>
-				{icon}
-			</View>
-			<Text className="text-base font-medium text-gray-900 flex-1">{title}</Text>
-			<View className={`${color} rounded-full px-2.5 py-1`}>
-				<Text className={`text-sm ${textColor}`}>{date}</Text>
-			</View>
-		</Pressable>
-	</View>
-);
+	rawDate?: string | Date;
+	onPress?: () => void;
+}) => {
+	// Format date if rawDate is provided, otherwise use the provided date string
+	const displayDate = rawDate ? formatRelativeDate(rawDate) : date;
+
+	// Default navigation handler if onPress is not provided
+	const handlePress = () => {
+		if (onPress) {
+			onPress();
+		} else if (taskId && vehicleId) {
+			router.push(`/vehicle/${vehicleId}/tasks/${taskId}`);
+		}
+	};
+
+	return (
+		<View className="border-b border-gray-50">
+			<Pressable
+				className="flex-row items-center py-3 px-4 active:bg-gray-50 active:rounded-xl my-0.5"
+				onPress={handlePress}
+			>
+				<View
+					className={`w-8 h-8 rounded-lg ${color} items-center justify-center mr-3`}
+				>
+					{icon}
+				</View>
+				<Text className="text-base font-medium text-gray-900 flex-1">
+					{title}
+				</Text>
+				<View className={`${color} rounded-full px-2.5 py-1`}>
+					<Text className={`text-sm ${textColor}`}>{displayDate}</Text>
+				</View>
+			</Pressable>
+		</View>
+	);
+};
 
 // Indicator component with animation
-const AnimatedIndicator = ({ 
-	isActive, 
-	onPress 
-}: { 
-	isActive: boolean; 
+const AnimatedIndicator = ({
+	isActive,
+	onPress,
+}: {
+	isActive: boolean;
 	onPress: () => void;
 }) => {
 	return (
-		<Pressable 
+		<Pressable
 			onPress={onPress}
 			className="mx-1.5"
 			hitSlop={{ top: 10, bottom: 10, left: 5, right: 5 }}
 		>
 			<View
 				className={`rounded-full ${isActive ? "bg-[#22000A]" : "bg-[#22000A]/20"}`}
-				style={{ 
-					width: isActive ? 16 : 6, 
+				style={{
+					width: isActive ? 16 : 6,
 					height: 6,
 					opacity: isActive ? 1 : 0.7,
 				}}
@@ -182,33 +267,102 @@ const AnimatedIndicator = ({
 };
 
 export default function Home() {
+	const { session } = useAuth();
+
+	const vehicles = useQuery({
+		queryKey: ["vehicles"],
+		queryFn: () => getVehicles(session?.user.id || ""),
+		// Transform the data to ensure it has the required fields
+		select: (data) => {
+			return data?.map(vehicle => ({
+				...vehicle,
+				// Ensure vehicle type is set (default to 'car' if not specified)
+				type: vehicle.type || 'car',
+				// Ensure bgColor is set (default to light amber for cars, light green for bikes)
+				bgColor: vehicle.bgColor || (vehicle.type === 'bike' ? '#B9FFC2' : '#FFC193')
+			})) || [];
+		}
+	});
+
 	const { width } = useWindowDimensions();
 	const SPACING = 24; // Padding for content
-	
+
 	const [currentIndex, setCurrentIndex] = useState(0);
+	const currentVehicle = vehicles.data?.[currentIndex];
 	const [refreshing, setRefreshing] = useState(false);
 	const [showActionMenu, setShowActionMenu] = useState(false);
 	const pagerRef = useRef<PagerView>(null);
-	const currentVehicle = mockVehicles[currentIndex];
-	
+
+	// Query for todos (uncompleted tasks)
+	const todos = useQuery({
+		queryKey: ["todos", currentVehicle?.id, currentIndex],
+		queryFn: () => getTodos(session?.user.id || "", currentVehicle?.id || ""),
+		enabled: !!currentVehicle?.id,
+	});
+
+	// Query for completed tasks
+	const completedTasks = useQuery({
+		queryKey: ["completedTasks", currentVehicle?.id, currentIndex],
+		queryFn: () => {
+			// For now, using mock data as there's no completed tasks API yet
+			// In a real implementation, you would have a getCompletedTasks function
+			return Promise.resolve(mockCompletedTasks);
+		},
+		enabled: !!currentVehicle?.id,
+	});
+
+	// Query for notes
+	const notes = useQuery({
+		queryKey: ["notes", currentVehicle?.id, currentIndex],
+		queryFn: () => {
+			// For now, using mock data as there's no notes API yet
+			// In a real implementation, you would have a getNotes function
+			return Promise.resolve(mockNotes);
+		},
+		enabled: !!currentVehicle?.id,
+	});
+
 	// Get current background color
-	const currentBgColor = currentVehicle.bgColor;
-	
+	const currentBgColor = currentVehicle?.bgColor || "#FFFFFF";
+
 	// Handle refresh
 	const onRefresh = useCallback(() => {
 		setRefreshing(true);
-		// Here you would fetch new data
-		setTimeout(() => {
-			setRefreshing(false);
-		}, 2000);
-	}, []);
-	
+		
+		// Refresh vehicles first
+		vehicles.refetch()
+			.then(() => {
+				// Only refresh the other queries if we have a current vehicle
+				if (currentVehicle?.id) {
+					return Promise.all([
+						todos.refetch(),
+						completedTasks.refetch(),
+						notes.refetch()
+					]);
+				}
+			})
+			.catch(error => {
+				console.error("Error refreshing data:", error);
+			})
+			.finally(() => {
+				setRefreshing(false);
+			});
+	}, [vehicles, todos, completedTasks, notes, currentVehicle]);
+
 	// Handle page changes with a smoother transition
 	const handlePageSelected = (e: any) => {
 		const newIndex = e.nativeEvent.position;
 		setCurrentIndex(newIndex);
+		
+		// Refresh todos, completed tasks and notes for the newly selected vehicle
+		const selectedVehicle = vehicles.data?.[newIndex];
+		if (selectedVehicle?.id) {
+			todos.refetch();
+			completedTasks.refetch();
+			notes.refetch();
+		}
 	};
-	
+
 	// Handle action button presses
 	const handleAddTasks = (vehicleId: string) => {
 		router.push(`/vehicle/${vehicleId}/tasks/new`);
@@ -225,7 +379,7 @@ export default function Home() {
 	const handleViewAllCompleted = (vehicleId: string) => {
 		router.push(`/vehicle/${vehicleId}/maintenance/history`);
 	};
-	
+
 	// New handlers for notes
 	const handleAddNote = (vehicleId: string) => {
 		router.push(`/vehicle/${vehicleId}/notes/new`);
@@ -234,7 +388,7 @@ export default function Home() {
 	const handleViewAllNotes = (vehicleId: string) => {
 		router.push(`/vehicle/${vehicleId}/notes`);
 	};
-	
+
 	// Handle manual navigation to specific vehicle
 	const goToVehicle = (index: number) => {
 		if (pagerRef.current) {
@@ -255,26 +409,31 @@ export default function Home() {
 
 	// Menu toggle function
 	const toggleActionMenu = () => {
-		setShowActionMenu(prev => !prev);
+		setShowActionMenu((prev) => !prev);
 	};
 
 	const actionMenuOptions = [
 		{
-			id: 'add-people',
-			label: 'Legg til personer',
+			id: "add-people",
+			label: "Legg til personer",
 			icon: <Users size={20} className="text-indigo-600" />,
-			onPress: () => handleAddPeople(currentVehicle.id)
+			onPress: () => handleAddPeople(currentVehicle.id),
 		},
 		{
-			id: 'transfer',
-			label: 'Overfør kjøretøy',
+			id: "transfer",
+			label: "Overfør kjøretøy",
 			icon: <ArrowLeftRight size={20} className="text-purple-600" />,
-			onPress: () => handleTransferVehicle(currentVehicle.id)
-		}
+			onPress: () => handleTransferVehicle(currentVehicle.id),
+		},
 	];
 
 	return (
-			<SafeAreaView edges={["top"]} className="flex-1" style={{ backgroundColor: currentBgColor }}>
+		<SafeAreaView
+			edges={["top"]}
+			className="flex-1"
+			style={{ backgroundColor: currentBgColor }}
+		>
+			{vehicles.data && vehicles.data.length > 0 ? (
 				<PagerView
 					ref={pagerRef}
 					style={{ flex: 1 }}
@@ -283,15 +442,15 @@ export default function Home() {
 					pageMargin={0}
 					overdrag={false}
 				>
-					{mockVehicles.map((item, index) => {
+					{vehicles.data.map((item, index) => {
 						return (
 							<View key={item.id} style={{ flex: 1 }}>
-								<ScrollView 
+								<ScrollView
 									showsVerticalScrollIndicator={false}
 									showsHorizontalScrollIndicator={false}
-									contentContainerStyle={{ 
+									contentContainerStyle={{
 										paddingBottom: 20, // Reduced padding
-										paddingHorizontal: SPACING 
+										paddingHorizontal: SPACING,
 									}}
 									refreshControl={
 										<RefreshControl
@@ -304,13 +463,16 @@ export default function Home() {
 									}
 								>
 									{/* Vehicle Info */}
-									<AnimatedView entering={FadeIn.delay(100).duration(600)} className="flex-row items-center justify-between mt-8 mb-5">
+									<AnimatedView
+										entering={FadeIn.delay(100).duration(600)}
+										className="flex-row items-center justify-between mt-8 mb-5"
+									>
 										<View className="flex-1">
 											{/* Nickname */}
 											<Text className="text-5xl font-black text-[#33000F] italic mb-1">
-												{item.nickname || ''}
+												{item.nickname || ""}
 											</Text>
-											
+
 											{/* Vehicle Details */}
 											<View className="flex-row items-center flex-wrap mt-1">
 												<Text className="text-lg font-medium text-gray-700 mr-2">
@@ -333,24 +495,26 @@ export default function Home() {
 										<Pressable
 											onPress={() => toggleActionMenu()}
 											className="relative"
-											android_ripple={{ color: 'rgba(0,0,0,0.2)', borderless: false, radius: 42 }}
+											android_ripple={{
+												color: "rgba(0,0,0,0.2)",
+												borderless: false,
+												radius: 42,
+											}}
 											hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-											style={({ pressed }) => [
-												{ opacity: pressed ? 0.8 : 1 }
-											]}
+											style={({ pressed }) => [{ opacity: pressed ? 0.8 : 1 }]}
 										>
-											<View 
+											<View
 												className={`w-20 h-20 rounded-full ${
-													item.type === 'bike' ? 'bg-purple-100' : 'bg-blue-100'
+													item.type === "bike" ? "bg-purple-100" : "bg-blue-100"
 												} items-center justify-center`}
 												style={{ elevation: 3 }}
 											>
-												{item.type === 'bike' ? (
+												{item.type === "bike" ? (
 													<Bike size={36} className="text-purple-700" />
 												) : (
 													<Car size={36} className="text-blue-700" />
 												)}
-												
+
 												{/* Indicator dot */}
 												<View className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-green-400 border border-white items-center justify-center">
 													<Sparkles size={12} className="text-white" />
@@ -358,60 +522,74 @@ export default function Home() {
 											</View>
 										</Pressable>
 									</AnimatedView>
-									
+
 									{/* Quick Actions */}
-									<AnimatedView entering={FadeInDown.delay(200).duration(600)} className="flex-row flex-wrap mt-1 mb-6">
-										<QuickAction 
-											label="Ny oppgave" 
-											icon={<Plus size={18} color="white" />} 
+									<AnimatedView
+										entering={FadeInDown.delay(200).duration(600)}
+										className="flex-row flex-wrap mt-1 mb-6"
+									>
+										<QuickAction
+											label="Ny oppgave"
+											icon={<Plus size={18} color="white" />}
 											onPress={() => handleAddTasks(item.id)}
 											color="bg-[#22000A]"
 										/>
-										<QuickAction 
-											label="Logg vedlikehold" 
-											icon={<Wrench size={18} color="white" />} 
+										<QuickAction
+											label="Logg vedlikehold"
+											icon={<Wrench size={18} color="white" />}
 											onPress={() => handleLogMaintenance(item.id)}
 											color="bg-[#22000A]"
 										/>
-										<QuickAction 
-											label="Nytt notat" 
-											icon={<Pencil size={18} color="white" />} 
+										<QuickAction
+											label="Nytt notat"
+											icon={<Pencil size={18} color="white" />}
 											onPress={() => handleAddNote(item.id)}
 											color="bg-[#22000A]"
 										/>
 									</AnimatedView>
 
 									{/* Recent To-dos Section */}
-									<AnimatedView entering={FadeInDown.delay(300).duration(600)} className="bg-white rounded-2xl p-5 mb-4" style={{ elevation: 2 }}>
-										<SectionHeader 
-											title="Planlagte oppgaver" 
+									<AnimatedView
+										entering={FadeInDown.delay(300).duration(600)}
+										className="bg-white rounded-2xl p-5 mb-4"
+										style={{ elevation: 2 }}
+									>
+										<SectionHeader
+											title="Planlagte oppgaver"
 											icon={<Clock size={18} className="text-amber-500" />}
-											onViewMore={() => handleViewAllTodos(item.id)} 
+											onViewMore={() => handleViewAllTodos(item.id)}
 										/>
-										
-										{mockTodos.map((todo, todoIndex) => (
+
+										{todos.data?.map((todo, todoIndex) => (
 											<TaskItem
 												key={todo.id}
-												title={todo.title}
+												title={todo.task}
 												date={todo.dueDate}
-												icon={todo.icon}
+												icon={getTodoIcon(todo.type, todo.completed)}
 												color="bg-amber-50"
 												textColor="text-amber-700"
 												taskId={todo.id}
 												vehicleId={item.id}
+												rawDate={todo.dueDate}
 											/>
 										))}
 									</AnimatedView>
 
 									{/* Recently Completed Section */}
-									<AnimatedView entering={FadeInDown.delay(400).duration(600)} className="bg-white rounded-2xl p-5 mb-4" style={{ elevation: 2 }}>
-										<SectionHeader 
-											title="Utført vedlikehold" 
-											icon={<CheckCircle2 size={18} className="text-green-500" />}
-											onViewMore={() => handleViewAllCompleted(item.id)} 
+									<AnimatedView
+										entering={FadeInDown.delay(400).duration(600)}
+										className="bg-white rounded-2xl p-5 mb-4"
+										style={{ elevation: 2 }}
+									>
+										<SectionHeader
+											title="Utført vedlikehold"
+											icon={
+												<CheckCircle2 size={18} className="text-green-500" />
+											}
+											onViewMore={() => handleViewAllCompleted(item.id)}
 										/>
-										
-										{mockCompletedTasks.map(task => (
+
+										{completedTasks.data?.map((task) => (
 											<TaskItem
 												key={task.id}
 												title={task.title}
@@ -421,79 +599,116 @@ export default function Home() {
 												textColor="text-green-700"
 												taskId={task.id}
 												vehicleId={item.id}
+												rawDate={task.rawDate}
 											/>
 										))}
 									</AnimatedView>
-									
+
 									{/* Notes Section */}
-									<AnimatedView entering={FadeInDown.delay(450).duration(600)} className="bg-white rounded-2xl p-5 mb-4" style={{ elevation: 2 }}>
-										<SectionHeader 
-											title="Notater" 
+									<AnimatedView
+										entering={FadeInDown.delay(450).duration(600)}
+										className="bg-white rounded-2xl p-5 mb-4"
+										style={{ elevation: 2 }}
+									>
+										<SectionHeader
+											title="Notater"
 											icon={<FileText size={18} className="text-indigo-500" />}
-											onViewMore={() => handleViewAllNotes(item.id)} 
+											onViewMore={() => handleViewAllNotes(item.id)}
 										/>
-										
-										{mockNotes.map(note => (
-											<View key={note.id} className="border-b border-gray-50">
-												<Pressable 
-													className="flex-row items-center py-3 px-4 active:bg-gray-50 active:rounded-xl my-0.5"
-													onPress={() => {
-														console.log(`Navigating to note: ${note.id}`);
-														router.push(`/vehicle/${item.id}/notes/${note.id}`);
-													}}
-													android_ripple={{ color: 'rgba(0,0,0,0.05)' }}
-												>
-													<View className="w-8 h-8 rounded-lg bg-indigo-50 items-center justify-center mr-3">
-														{note.icon}
-													</View>
-													<Text className="text-base font-medium text-gray-900 flex-1">{note.title}</Text>
-													<View className="bg-indigo-50 rounded-full px-2.5 py-1">
-														<Text className="text-sm text-indigo-700">{note.date}</Text>
-													</View>
-												</Pressable>
-											</View>
+
+										{notes.data?.map((note) => (
+											<TaskItem
+												key={note.id}
+												title={note.title}
+												date={note.date}
+												icon={note.icon}
+												color="bg-indigo-50"
+												textColor="text-indigo-700"
+												taskId={note.id}
+												vehicleId={item.id}
+												rawDate={note.rawDate}
+												onPress={() =>
+													router.push(`/vehicle/${item.id}/notes/${note.id}`)
+												}
+											/>
 										))}
 									</AnimatedView>
-									
+
 									{/* Stats/Quick Info */}
-									<AnimatedView entering={FadeInDown.delay(500).duration(600)} className="mb-6">
-										<Text className="text-lg font-bold text-gray-900 mb-3">Statistikk</Text>
+									<AnimatedView
+										entering={FadeInDown.delay(500).duration(600)}
+										className="mb-6"
+									>
+										<Text className="text-lg font-bold text-gray-900 mb-3">
+											Statistikk
+										</Text>
 										<View className="flex-row flex-wrap">
 											<View className="w-1/3 pr-2 mb-4">
-												<View className="bg-white rounded-xl p-4 items-center" style={{ elevation: 2 }}>
+												<View
+													className="bg-white rounded-xl p-4 items-center"
+													style={{ elevation: 2 }}
+												>
 													<Fuel size={22} className="text-blue-500 mb-1.5" />
-													<Text className="text-sm text-gray-600 text-center">Neste service</Text>
-													<Text className="text-base font-bold text-gray-900">1200 km</Text>
+													<Text className="text-sm text-gray-600 text-center">
+														Neste service
+													</Text>
+													<Text className="text-base font-bold text-gray-900">
+														1200 km
+													</Text>
 												</View>
 											</View>
 											<View className="w-1/3 px-1 mb-4">
-												<View className="bg-white rounded-xl p-4 items-center" style={{ elevation: 2 }}>
+												<View
+													className="bg-white rounded-xl p-4 items-center"
+													style={{ elevation: 2 }}
+												>
 													<Battery size={22} className="text-blue-500 mb-1.5" />
-													<Text className="text-sm text-gray-600 text-center">Batteri</Text>
-													<Text className="text-base font-bold text-gray-900">God</Text>
+													<Text className="text-sm text-gray-600 text-center">
+														Batteri
+													</Text>
+													<Text className="text-base font-bold text-gray-900">
+														God
+													</Text>
 												</View>
 											</View>
 											<View className="w-1/3 pl-2 mb-4">
-												<View className="bg-white rounded-xl p-4 items-center" style={{ elevation: 2 }}>
+												<View
+													className="bg-white rounded-xl p-4 items-center"
+													style={{ elevation: 2 }}
+												>
 													<PenLine size={22} className="text-blue-500 mb-1.5" />
-													<Text className="text-sm text-gray-600 text-center">Notater</Text>
-													<Text className="text-base font-bold text-gray-900">3</Text>
+													<Text className="text-sm text-gray-600 text-center">
+														Notater
+													</Text>
+													<Text className="text-base font-bold text-gray-900">
+														3
+													</Text>
 												</View>
 											</View>
 											<View className="w-1/3 pr-2">
-												<View className="bg-white rounded-xl p-4 items-center" style={{ elevation: 2 }}>
-													<WrenchIcon size={22} className="text-blue-500 mb-1.5" />
-													<Text className="text-sm text-gray-600 text-center">EU-kontroll</Text>
-													<Text className="text-base font-bold text-gray-900">Om 5 mnd</Text>
+												<View
+													className="bg-white rounded-xl p-4 items-center"
+													style={{ elevation: 2 }}
+												>
+													<WrenchIcon
+														size={22}
+														className="text-blue-500 mb-1.5"
+													/>
+													<Text className="text-sm text-gray-600 text-center">
+														EU-kontroll
+													</Text>
+													<Text className="text-base font-bold text-gray-900">
+														Om 5 mnd
+													</Text>
 												</View>
 											</View>
 										</View>
 									</AnimatedView>
-									
+
 									{/* Page indicators at bottom */}
 									<View className="flex-row justify-center items-center mb-8">
-										{mockVehicles.map((_, i) => (
-											<AnimatedIndicator 
+										{vehicles.data.map((_, i) => (
+											<AnimatedIndicator
 												key={i}
 												isActive={i === currentIndex}
 												onPress={() => goToVehicle(i)}
@@ -505,15 +720,30 @@ export default function Home() {
 						);
 					})}
 				</PagerView>
+			) : (
+				<View className="flex-1 items-center justify-center p-4">
+					<Text className="text-xl font-bold text-gray-800 mb-4">
+						Ingen kjøretøy funnet
+					</Text>
+					<Pressable
+						className="bg-[#22000A] py-3 px-5 rounded-xl"
+						onPress={() => router.push("/new-vehicle")}
+					>
+						<Text className="text-white font-bold">
+							Legg til ditt første kjøretøy
+						</Text>
+					</Pressable>
+				</View>
+			)}
 
-				{/* Action Menu */}
-				{showActionMenu && (
-					<ActionSheet
-						title="Administrer kjøretøy"
-						options={actionMenuOptions}
-						onClose={() => setShowActionMenu(false)}
-					/>
-				)}
-			</SafeAreaView>
+			{/* Action Menu */}
+			{showActionMenu && (
+				<ActionSheet
+					title="Administrer kjøretøy"
+					options={actionMenuOptions}
+					onClose={() => setShowActionMenu(false)}
+				/>
+			)}
+		</SafeAreaView>
 	);
 }
