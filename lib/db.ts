@@ -114,4 +114,75 @@ const updateTodo = async (
 	return data;
 };
 
-export { getTodos, getVehicles, getTodoById, createTodo, completeTodo, deleteTodo, updateTodo };
+const createVehicle = async (
+	userId: string,
+	vehicleData: {
+		nickname: string;
+		vehicle_type?: string;
+		make?: string;
+		model?: string;
+		year?: number;
+		color?: string;
+		licensePlate?: string;
+		imageUrl?: string;
+		type: 'car' | 'bike';
+		bgColor: string;
+	}
+) => {
+	const { data, error } = await supabase
+		.from("vehicles")
+		.insert([
+			{
+				user_id: userId,
+				...vehicleData
+			}
+		])
+		.select()
+		.single()
+		.throwOnError();
+
+	return data;
+};
+
+const getVehicleById = async (vehicleId: string, userId: string) => {
+	const { data, error } = await supabase
+		.from("vehicles")
+		.select("*")
+		.eq("id", vehicleId)
+		.eq("user_id", userId)
+		.single();
+	if (error) throw error;
+	return data;
+};
+
+const updateVehicle = async (
+	vehicleId: string,
+	userId: string,
+	vehicleData: {
+		nickname: string;
+		make?: string;
+		model?: string;
+		year?: number;
+		color?: string;
+		licensePlate?: string;
+		imageUrl?: string;
+		type: 'car' | 'bike';
+		bgColor: string;
+	}
+) => {
+	const { data, error } = await supabase
+		.from("vehicles")
+		.update({
+			...vehicleData,
+			user_id: userId,
+		})
+		.eq("id", vehicleId)
+		.eq("user_id", userId)
+		.select()
+		.single()
+		.throwOnError();
+
+	return data;
+};
+
+export { getTodos, getVehicles, getTodoById, createTodo, completeTodo, deleteTodo, updateTodo, createVehicle, getVehicleById, updateVehicle };

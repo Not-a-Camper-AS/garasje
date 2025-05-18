@@ -1,13 +1,13 @@
 import { View, ScrollView, TextInput, Pressable, Alert } from "react-native";
-import { Stack, router } from "expo-router";
-import { useState } from "react";
+import { Stack, router, useLocalSearchParams } from "expo-router";
+import { useState, useEffect } from "react";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
 import { ArrowLeft, Car, Bike, ChevronDown } from "lucide-react-native";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createVehicle } from "@/lib/db";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createVehicle, getVehicleById, updateVehicle } from "@/lib/db";
 import { useAuth } from "@/context/supabase-provider";
-
+import { Vehicle } from "@/types/vehicle";
 
 // Vehicle type options
 const vehicleTypes = [
@@ -51,7 +51,8 @@ const vehicleColorPresets = [
   { id: "beige", name: "Beige", value: "#F5F5DC" },
 ];
 
-export default function NewVehicle() {
+export default function EditVehicle() {
+  const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useAuth();
   const queryClient = useQueryClient();
   
@@ -68,6 +69,27 @@ export default function NewVehicle() {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showBgColorPicker, setShowBgColorPicker] = useState(false);
 
+  // Fetch existing vehicle data
+  const { data: vehicle, isLoading } = useQuery<Vehicle>({
+    queryKey: ["vehicle", id],
+    queryFn: () => getVehicleById(id as string, session?.user.id as string),
+    enabled: !!id && !!session?.user.id,
+  });
+
+  // Update form when vehicle data is loaded
+  useEffect(() => {
+    if (vehicle) {
+      setNickname(vehicle.nickname);
+      setMake(vehicle.make || "");
+      setModel(vehicle.model || "");
+      setYear(vehicle.year?.toString() || "");
+      setColor(vehicle.color || "");
+      setLicensePlate(vehicle.licensePlate || "");
+      setSelectedType(vehicle.type);
+      setSelectedBgColor(vehicle.bgColor);
+    }
+  }, [vehicle]);
+
   // Update background color when vehicle type changes
   const handleTypeChange = (type: "car" | "bike") => {
     setSelectedType(type);
@@ -75,17 +97,25 @@ export default function NewVehicle() {
     setShowTypePicker(false);
   };
 
-  // Mutation to create a new vehicle
+  // Mutation to update the vehicle
   const { mutate: saveVehicle, isPending: saving } = useMutation({
-    mutationFn: (vehicleData: Parameters<typeof createVehicle>[1]) => 
-      createVehicle(session?.user.id as string, vehicleData),
+    mutationFn: (vehicleData: {
+      nickname: string;
+      make?: string;
+      model?: string;
+      year?: number;
+      color?: string;
+      licensePlate?: string;
+      type: 'car' | 'bike';
+      bgColor: string;
+    }) => updateVehicle(id as string, session?.user.id as string, vehicleData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vehicles"] });
-      router.replace("/");
+      router.back();
     },
     onError: (error) => {
-      console.error("Error saving vehicle:", error);
-      Alert.alert("Error", "Could not save vehicle. Please try again.");
+      console.error("Error updating vehicle:", error);
+      Alert.alert("Error", "Could not update vehicle. Please try again.");
     },
   });
 
@@ -108,6 +138,16 @@ export default function NewVehicle() {
     });
   };
 
+  if (isLoading) {
+    return (
+      <SafeAreaView className="flex-1 bg-white">
+        <View className="flex-1 items-center justify-center">
+          <Text>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       <Stack.Screen 
@@ -125,17 +165,25 @@ export default function NewVehicle() {
           >
             <ArrowLeft size={24} color="#111" />
           </Pressable>
-          <Text className="text-xl font-bold flex-1">Legg til nytt kjøretøy</Text>
+          <View className="flex-1">
+            <Text className="text-base text-gray-600">{vehicle?.make} {vehicle?.model}</Text>
+            <Text className="text-xl font-bold">Rediger kjøretøy</Text>
+          </View>
           <Pressable 
             onPress={handleSave}
-            disabled={saving}
-            className="px-4 py-2 rounded-full bg-[#22000A] items-center justify-center active:opacity-90"
+            className={`px-4 py-2 rounded-full ${nickname.trim() ? 'bg-[#22000A]' : 'bg-gray-200'} items-center justify-center active:opacity-90`}
+            disabled={!nickname.trim() || saving}
           >
-            <Text className="text-white font-medium">Lagre</Text>
+            {saving ? (
+              <Text className="text-base font-medium text-white">Lagrer...</Text>
+            ) : (
+              <Text className={`text-base font-medium ${nickname.trim() ? 'text-white' : 'text-gray-500'}`}>
+                Lagre
+              </Text>
+            )}
           </Pressable>
         </View>
 
-        {/* Form */}
         <ScrollView className="flex-1 p-4">
           {/* Nickname */}
           <View className="mb-4">
@@ -196,23 +244,31 @@ export default function NewVehicle() {
             <TextInput
               value={year}
               onChangeText={setYear}
-              placeholder="F.eks. 2022"
+              placeholder="F.eks. 2023"
               keyboardType="numeric"
               className="bg-gray-50 px-4 rounded-xl text-base"
               style={{ height: 44, textAlignVertical: 'center', paddingTop: 0, paddingBottom: 0 }}
             />
           </View>
 
-          {/* Vehicle Color */}
+          {/* Color */}
           <View className="mb-4">
             <Text className="text-sm font-medium text-gray-700 mb-1">Farge</Text>
-            <TextInput
-              value={color}
-              onChangeText={setColor}
-              placeholder="F.eks. Rød"
-              className="bg-gray-50 px-4 rounded-xl text-base"
-              style={{ height: 44, textAlignVertical: 'center', paddingTop: 0, paddingBottom: 0 }}
-            />
+            <Pressable
+              onPress={() => setShowColorPicker(true)}
+              className="bg-gray-50 px-4 py-3 rounded-xl flex-row items-center justify-between"
+            >
+              <View className="flex-row items-center">
+                <View 
+                  className="w-6 h-6 rounded-full mr-2 border border-gray-200"
+                  style={{ backgroundColor: color }}
+                />
+                <Text className="text-base">
+                  {vehicleColorPresets.find(c => c.value === color)?.name || "Velg farge"}
+                </Text>
+              </View>
+              <ChevronDown size={20} color="#666" />
+            </Pressable>
           </View>
 
           {/* Background Color */}
@@ -274,31 +330,59 @@ export default function NewVehicle() {
         </View>
       )}
 
+      {/* Color Picker Modal */}
+      {showColorPicker && (
+        <View className="absolute inset-0 bg-black/50 items-center justify-center">
+          <View className="bg-white w-[90%] rounded-2xl p-4">
+            <Text className="text-lg font-bold mb-4">Velg farge</Text>
+            <View className="flex-row flex-wrap justify-between">
+              {vehicleColorPresets.map((colorPreset) => (
+                <Pressable
+                  key={colorPreset.id}
+                  onPress={() => {
+                    setColor(colorPreset.value);
+                    setShowColorPicker(false);
+                  }}
+                  className="w-[30%] mb-4"
+                >
+                  <View 
+                    className="w-full aspect-square rounded-full border border-gray-200 mb-2"
+                    style={{ backgroundColor: colorPreset.value }}
+                  />
+                  <Text className="text-center text-sm">{colorPreset.name}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Pressable
+              onPress={() => setShowColorPicker(false)}
+              className="mt-4 py-3"
+            >
+              <Text className="text-center text-red-600 font-medium">Avbryt</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
       {/* Background Color Picker Modal */}
       {showBgColorPicker && (
         <View className="absolute inset-0 bg-black/50 items-center justify-center">
           <View className="bg-white w-[90%] rounded-2xl p-4">
-            <Text className="text-lg font-bold mb-2">Velg bakgrunnsfarge</Text>
-            <Text className="text-sm text-gray-500 mb-4">
-              Velg en farge som vil vises som bakgrunn for kjøretøyet ditt i appen. Dette hjelper deg med å raskt identifisere kjøretøyet ditt.
-            </Text>
+            <Text className="text-lg font-bold mb-4">Velg bakgrunnsfarge</Text>
             <View className="flex-row flex-wrap justify-between">
-              {bgColorPresets[selectedType].map((preset) => (
+              {bgColorPresets[selectedType].map((colorPreset) => (
                 <Pressable
-                  key={preset.id}
+                  key={colorPreset.id}
                   onPress={() => {
-                    setSelectedBgColor(preset.value);
+                    setSelectedBgColor(colorPreset.value);
                     setShowBgColorPicker(false);
                   }}
-                  className="w-[30%] items-center mb-4"
+                  className="w-[30%] mb-4"
                 >
                   <View 
-                    className={`w-16 h-16 rounded-full mb-1 border-2 ${
-                      selectedBgColor === preset.value ? 'border-[#22000A]' : 'border-gray-200'
-                    }`}
-                    style={{ backgroundColor: preset.value }}
+                    className="w-full aspect-square rounded-full border border-gray-200 mb-2"
+                    style={{ backgroundColor: colorPreset.value }}
                   />
-                  <Text className="text-xs text-center">{preset.name}</Text>
+                  <Text className="text-center text-sm">{colorPreset.name}</Text>
                 </Pressable>
               ))}
             </View>
@@ -311,7 +395,6 @@ export default function NewVehicle() {
           </View>
         </View>
       )}
-
     </SafeAreaView>
   );
-}
+} 

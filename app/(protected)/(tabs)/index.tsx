@@ -394,12 +394,23 @@ export default function Home() {
 		setShowActionMenu(false);
 	};
 
+	const handleEditVehicle = (vehicleId: string) => {
+		router.push(`/vehicle/${vehicleId}/edit`);
+		setShowActionMenu(false);
+	};
+
 	// Menu toggle function
 	const toggleActionMenu = () => {
 		setShowActionMenu((prev) => !prev);
 	};
 
 	const actionMenuOptions = [
+		{
+			id: "edit",
+			label: "Rediger kjøretøy",
+			icon: <Pencil size={20} className="text-blue-600" />,
+			onPress: () => handleEditVehicle(currentVehicle.id),
+		},
 		{
 			id: "add-people",
 			label: "Legg til personer",
