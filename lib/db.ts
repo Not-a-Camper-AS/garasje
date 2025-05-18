@@ -1,6 +1,4 @@
 import { supabase } from "@/config/supabase";
-import { Profile } from "@/types/user";
-import { Vehicle } from "@/types/vehicle";
 
 const getTodos = async (userId: string, vehicleId: string) => {
 	const { data, error } = await supabase
@@ -8,8 +6,8 @@ const getTodos = async (userId: string, vehicleId: string) => {
 		.select("*")
 		.eq("user_id", userId)
 		.eq("vehicle_id", vehicleId)
-        .eq('is_complete', false)
-        .throwOnError();
+		.eq("is_complete", false)
+		.throwOnError();
 
 	if (error) throw error;
 	return data;
@@ -100,7 +98,7 @@ const updateTodo = async (
 		dueDate?: string;
 		notes?: string;
 		type?: string;
-	}
+	},
 ) => {
 	const { data, error } = await supabase
 		.from("todos")
@@ -125,17 +123,17 @@ const createVehicle = async (
 		color?: string;
 		licensePlate?: string;
 		imageUrl?: string;
-		type: 'car' | 'bike';
+		type: "car" | "bike";
 		bgColor: string;
-	}
+	},
 ) => {
 	const { data, error } = await supabase
 		.from("vehicles")
 		.insert([
 			{
 				user_id: userId,
-				...vehicleData
-			}
+				...vehicleData,
+			},
 		])
 		.select()
 		.single()
@@ -166,9 +164,9 @@ const updateVehicle = async (
 		color?: string;
 		licensePlate?: string;
 		imageUrl?: string;
-		type: 'car' | 'bike';
+		type: "car" | "bike";
 		bgColor: string;
-	}
+	},
 ) => {
 	const { data, error } = await supabase
 		.from("vehicles")
@@ -185,4 +183,26 @@ const updateVehicle = async (
 	return data;
 };
 
-export { getTodos, getVehicles, getTodoById, createTodo, completeTodo, deleteTodo, updateTodo, createVehicle, getVehicleById, updateVehicle };
+const deleteVehicle = async (vehicleId: string) => {
+	const { error } = await supabase
+		.from("vehicles")
+		.delete()
+		.eq("id", vehicleId)
+		.throwOnError();
+
+	if (error) throw error;
+};
+
+export {
+	getTodos,
+	getVehicles,
+	getTodoById,
+	createTodo,
+	completeTodo,
+	deleteTodo,
+	updateTodo,
+	createVehicle,
+	getVehicleById,
+	updateVehicle,
+	deleteVehicle,
+};
