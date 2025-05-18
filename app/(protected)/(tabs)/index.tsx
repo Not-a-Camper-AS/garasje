@@ -104,15 +104,17 @@ const QuickAction = ({
 	textColor?: string;
 }) => (
 	<Pressable
-		className={`${color} rounded-xl py-3 px-4 flex-row items-center mr-3 mb-3 shadow-sm`}
-		style={{ elevation: 3 }}
+		className={`${color} rounded-lg py-2.5 px-3 flex-row items-center shadow-sm flex-1`}
+		style={{ elevation: 2 }}
 		onPress={onPress}
 		android_ripple={{ color: "rgba(0,0,0,0.1)", borderless: false, radius: 20 }}
 	>
-		<Text className={`text-base font-black italic mr-2.5 ${textColor}`}>
+		<View className="bg-white/20 rounded-md p-1.5 mr-2">
+			{icon}
+		</View>
+		<Text className={`text-sm font-medium ${textColor}`}>
 			{label}
 		</Text>
-		<View className=" rounded-lg p-1.5 ">{icon}</View>
 	</Pressable>
 );
 
@@ -511,26 +513,44 @@ export default function Home() {
 									{/* Quick Actions */}
 									<AnimatedView
 										entering={FadeInDown.delay(200).duration(600)}
-										className="flex-row flex-wrap mt-1 mb-6"
+										className="mt-1 mb-4"
 									>
-										<QuickAction
-											label="Ny oppgave"
-											icon={<Plus size={18} color="white" />}
-											onPress={() => handleAddTasks(item.id)}
-											color="bg-[#22000A]"
-										/>
-										<QuickAction
-											label="Logg vedlikehold"
-											icon={<Wrench size={18} color="white" />}
-											onPress={() => handleLogMaintenance(item.id)}
-											color="bg-[#22000A]"
-										/>
-										<QuickAction
-											label="Nytt notat"
-											icon={<Pencil size={18} color="white" />}
-											onPress={() => handleAddNote(item.id)}
-											color="bg-[#22000A]"
-										/>
+										<View className="flex-row gap-2">
+											<View className="flex-1">
+												<QuickAction
+													label="Ny oppgave"
+													icon={<Plus size={16} color="white" />}
+													onPress={() => handleAddTasks(item.id)}
+													color="bg-[#22000A]"
+												/>
+											</View>
+											<View className="flex-1">
+												<QuickAction
+													label="Logg vedlikehold"
+													icon={<Wrench size={16} color="white" />}
+													onPress={() => handleLogMaintenance(item.id)}
+													color="bg-[#22000A]"
+												/>
+											</View>
+										</View>
+										<View className="flex-row gap-2 mt-2">
+											<View className="flex-1">
+												<QuickAction
+													label="Nytt notat"
+													icon={<Pencil size={16} color="white" />}
+													onPress={() => handleAddNote(item.id)}
+													color="bg-[#22000A]"
+												/>
+											</View>
+											<View className="flex-1">
+												<QuickAction
+													label="Se historikk"
+													icon={<Clock size={16} color="white" />}
+													onPress={() => handleViewAllCompleted(item.id)}
+													color="bg-[#22000A]"
+												/>
+											</View>
+										</View>
 									</AnimatedView>
 
 									{/* Recent To-dos Section */}
