@@ -291,6 +291,70 @@ const deleteMaintenance = async (maintenanceId: string, userId: string) => {
 	if (error) throw error;
 };
 
+// Add a file to a maintenance record
+const addMaintenanceFile = async (
+	maintenanceId: string,
+	userId: string,
+	fileUrl: string
+) => {
+	console.log(`Adding file for maintenance ID: ${maintenanceId}, user ID: ${userId}, URL: ${fileUrl}`);
+	const { data, error } = await supabase
+		.from("maintenance_files")
+		.insert([
+			{
+				maintenance_id: maintenanceId,
+				user_id: userId,
+				file_url: fileUrl,
+			},
+		])
+		.select()
+		.single();
+	
+	if (error) {
+		console.error("Error adding maintenance file:", error);
+		throw error;
+	}
+	
+	console.log("File added successfully:", data?.id);
+	return data;
+};
+
+// Get all files for a maintenance record
+const getMaintenanceFiles = async (
+	maintenanceId: string,
+	userId: string
+) => {
+	console.log(`Getting files for maintenance ID: ${maintenanceId} and user ID: ${userId}`);
+	const { data, error } = await supabase
+		.from("maintenance_files")
+		.select("*")
+		.eq("maintenance_id", maintenanceId)
+		.eq("user_id", userId)
+		.order("uploaded_at", { ascending: true });
+	
+	if (error) {
+		console.error("Error fetching maintenance files:", error);
+		throw error;
+	}
+	
+	console.log(`Found ${data?.length || 0} files for maintenance ID: ${maintenanceId}`);
+	return data;
+};
+
+// Delete a file from a maintenance record
+const deleteMaintenanceFile = async (
+	fileId: string,
+	userId: string
+) => {
+	const { error } = await supabase
+		.from("maintenance_files")
+		.delete()
+		.eq("id", fileId)
+		.eq("user_id", userId)
+		.throwOnError();
+	if (error) throw error;
+};
+
 export {
 	getTodos,
 	getVehicles,
@@ -308,4 +372,7 @@ export {
 	createMaintenance,
 	updateMaintenance,
 	deleteMaintenance,
+	addMaintenanceFile,
+	getMaintenanceFiles,
+	deleteMaintenanceFile,
 };

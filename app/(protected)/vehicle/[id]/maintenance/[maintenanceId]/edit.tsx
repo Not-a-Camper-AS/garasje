@@ -2,8 +2,8 @@ import { View, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/supabase-provider";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createMaintenance, addMaintenanceFile } from "@/lib/db";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { getMaintenanceById, updateMaintenance, getMaintenanceFiles, addMaintenanceFile, deleteMaintenanceFile } from "@/lib/db";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
 import { Input } from "@/components/ui/input";
@@ -24,15 +24,29 @@ const maintenanceTypes = [
 	{ id: "general", label: "Annet" },
 ];
 
-export default function LogMaintenance() {
-	const { id: vehicleId } = useLocalSearchParams();
+interface MaintenanceRecord {
+	title: string;
+	description?: string;
+	maintenance_type: string;
+	cost?: number;
+	mileage?: number;
+	date_performed: string;
+	technician?: string;
+	file_url?: string;
+}
+
+interface MaintenanceFile {
+	id: string;
+	maintenance_id: string;
+	user_id: string;
+	file_url: string;
+	uploaded_at: string;
+}
+
+export default function EditMaintenance() {
+	const { id: vehicleId, maintenanceId } = useLocalSearchParams();
 	const { session } = useAuth();
 	const queryClient = useQueryClient();
-
-	// Log vehicleId for debugging
-	useEffect(() => {
-		console.log("LogMaintenance vehicleId:", vehicleId);
-	}, [vehicleId]);
 
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState("");
@@ -43,13 +57,48 @@ export default function LogMaintenance() {
 	const [datePerformed, setDatePerformed] = useState(new Date());
 	const [showDatePicker, setShowDatePicker] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [fileUrls, setFileUrls] = useState<{url: string, path: string}[]>([]);
+	const [fileUrls, setFileUrls] = useState<{url: string, path: string, id?: string}[]>([]);
 
-	const createMaintenanceMutation = useMutation({
+	// Fetch existing maintenance record
+	const maintenance = useQuery<MaintenanceRecord>({
+		queryKey: ["maintenance", maintenanceId],
+		queryFn: () => getMaintenanceById(maintenanceId as string, session?.user.id || ""),
+	});
+
+	// Fetch existing files
+	const files = useQuery<MaintenanceFile[]>({
+		queryKey: ["maintenanceFiles", maintenanceId],
+		queryFn: () => getMaintenanceFiles(maintenanceId as string, session?.user.id || ""),
+	});
+
+	// Initialize form with existing data
+	useEffect(() => {
+		if (maintenance.data) {
+			setTitle(maintenance.data.title);
+			setDescription(maintenance.data.description || "");
+			setMaintenanceType(maintenance.data.maintenance_type);
+			setCost(maintenance.data.cost?.toString() || "");
+			setMileage(maintenance.data.mileage?.toString() || "");
+			setTechnician(maintenance.data.technician || "");
+			setDatePerformed(new Date(maintenance.data.date_performed));
+		}
+	}, [maintenance.data]);
+
+	// Initialize files when they're loaded
+	useEffect(() => {
+		if (files.data) {
+			setFileUrls(files.data.map(file => ({
+				url: file.file_url,
+				path: file.file_url.split("/storage/v1/object/public/")[1] || "",
+				id: file.id
+			})));
+		}
+	}, [files.data]);
+
+	const updateMaintenanceMutation = useMutation({
 		mutationFn: async () => {
-			// First create the maintenance record without files
-			console.log("Creating maintenance record");
-			const maintenanceRecord = await createMaintenance(session?.user.id || "", vehicleId as string, {
+			// First update the maintenance record details
+			await updateMaintenance(maintenanceId as string, session?.user.id || "", {
 				title,
 				description,
 				maintenance_type: maintenanceType,
@@ -58,43 +107,46 @@ export default function LogMaintenance() {
 				date_performed: datePerformed.toISOString(),
 				technician: technician || undefined,
 			});
-			
-			console.log("Maintenance record created:", maintenanceRecord.id);
-			console.log("Files to add:", JSON.stringify(fileUrls));
 
-			// Then add each file to the maintenance_files table
-			const filePromises = fileUrls.map(file => {
-				console.log("Adding file to DB:", file.url);
-				return addMaintenanceFile(maintenanceRecord.id, session?.user.id || "", file.url)
-					.then(result => {
-						console.log("File added successfully:", result);
-						return result;
-					})
-					.catch(error => {
-						console.error("Error adding file:", error);
-						throw error;
-					});
-			});
+			// For new files (those without an id), add them to the maintenance_files table
+			const newFilePromises = fileUrls
+				.filter(file => !file.id)
+				.map(file => addMaintenanceFile(maintenanceId as string, session?.user.id || "", file.url));
 			
-			if (filePromises.length > 0) {
-				console.log(`Adding ${filePromises.length} files to maintenance record`);
-				const results = await Promise.all(filePromises);
-				console.log("All files added successfully:", results.length);
-			} else {
-				console.log("No files to add");
+			if (newFilePromises.length > 0) {
+				await Promise.all(newFilePromises);
 			}
 			
-			return maintenanceRecord;
+			return true;
 		},
-		onSuccess: (data) => {
-			console.log("Maintenance record creation successful, ID:", data.id);
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["maintenance", maintenanceId] });
+			queryClient.invalidateQueries({ queryKey: ["maintenanceFiles", maintenanceId] });
 			queryClient.invalidateQueries({ queryKey: ["completedTasks"] });
 			router.back();
 		},
-		onError: (error) => {
-			console.error("Error in createMaintenanceMutation:", error);
-		}
 	});
+
+	const handleRemoveFile = async (url: string) => {
+		// Find the file in our list
+		const file = fileUrls.find(f => f.url === url);
+		if (!file) return;
+
+		// If file has an ID, it's stored in the database and needs to be removed
+		if (file.id) {
+			try {
+				await deleteMaintenanceFile(file.id, session?.user.id || "");
+				// Remove it from our state
+				setFileUrls(prev => prev.filter(f => f.url !== url));
+			} catch (error) {
+				console.error("Failed to delete file:", error);
+				Alert.alert("Feil", "Kunne ikke slette filen");
+			}
+		} else {
+			// Just remove it from our state (it's not in the database yet)
+			setFileUrls(prev => prev.filter(f => f.url !== url));
+		}
+	};
 
 	const handleSubmit = async () => {
 		if (!title || !maintenanceType || !datePerformed) {
@@ -104,14 +156,24 @@ export default function LogMaintenance() {
 
 		setIsSubmitting(true);
 		try {
-			await createMaintenanceMutation.mutateAsync();
+			await updateMaintenanceMutation.mutateAsync();
 		} catch (error) {
-			console.error("Error creating maintenance record:", error);
-			Alert.alert("Feil", "Kunne ikke opprette vedlikeholdslogg");
+			console.error("Error updating maintenance record:", error);
+			Alert.alert("Feil", "Kunne ikke oppdatere vedlikeholdslogg");
 		} finally {
 			setIsSubmitting(false);
 		}
 	};
+
+	if (maintenance.isLoading || files.isLoading) {
+		return (
+			<SafeAreaView edges={["top", "bottom", "left", "right"]} className="flex-1 bg-white">
+				<View className="flex-1 items-center justify-center">
+					<Text>Laster...</Text>
+				</View>
+			</SafeAreaView>
+		);
+	}
 
 	return (
 		<SafeAreaView edges={["top", "bottom", "left", "right"]} className="flex-1 bg-white">
@@ -123,7 +185,7 @@ export default function LogMaintenance() {
 				>
 					<ArrowLeft size={24} className="text-gray-900" />
 				</Pressable>
-				<Text className="text-xl font-bold">Logg vedlikehold</Text>
+				<Text className="text-xl font-bold">Rediger vedlikehold</Text>
 			</View>
 
 			<ScrollView className="flex-1 p-4">
@@ -228,17 +290,14 @@ export default function LogMaintenance() {
 						<Text className="text-sm font-medium text-gray-700 mb-2">
 							Kvittering eller bilde
 						</Text>
-						{/* Log before rendering FileUpload */}
 						<FileUpload
-							onUploadComplete={(url, path) => {
-								console.log("File uploaded with vehicleId:", vehicleId);
-								setFileUrls((prev) => [...prev, {url, path}]);
-							}}
+							onUploadComplete={(url, path) => setFileUrls((prev) => [...prev, {url, path}])}
 							onUploadError={(error) => Alert.alert("Feil", error)}
-							onRemove={(url) => setFileUrls((prev) => prev.filter((f) => f.url !== url))}
+							onRemove={(url) => handleRemoveFile(url)}
 							existingUrls={fileUrls.map(f => f.url)}
 							userId={String(session?.user.id)}
 							vehicleId={vehicleId as string}
+							maintenanceId={maintenanceId as string}
 						/>
 					</View>
 
@@ -277,7 +336,7 @@ export default function LogMaintenance() {
 						className="mt-4"
 					>
 						<Text className="text-white font-medium">
-							{isSubmitting ? "Logger..." : "Logg vedlikehold"}
+							{isSubmitting ? "Lagrer..." : "Lagre endringer"}
 						</Text>
 					</Button>
 				</View>
