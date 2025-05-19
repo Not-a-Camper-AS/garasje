@@ -13,6 +13,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { format } from "date-fns";
 import { Alert, TextInput } from "react-native";
 import { FileUpload } from "@/components/ui/file-upload";
+import { supabase } from "@/config/supabase";
 
 const maintenanceTypes = [
 	{ id: "oil", label: "Oljeskift" },
@@ -135,7 +136,9 @@ export default function EditMaintenance() {
 		// If file has an ID, it's stored in the database and needs to be removed
 		if (file.id) {
 			try {
+				// This function already handles storage deletion
 				await deleteMaintenanceFile(file.id, session?.user.id || "");
+				
 				// Remove it from our state
 				setFileUrls(prev => prev.filter(f => f.url !== url));
 			} catch (error) {
@@ -143,6 +146,18 @@ export default function EditMaintenance() {
 				Alert.alert("Feil", "Kunne ikke slette filen");
 			}
 		} else {
+			// For new files, still try to remove from storage if possible
+			const extractedPath = url.split("/storage/v1/object/public/")[1];
+			if (extractedPath) {
+				console.log("Removing new file from storage:", extractedPath);
+				try {
+					await supabase.storage.from("maintenance").remove([extractedPath]);
+					console.log("New file successfully removed from storage");
+				} catch (storageError) {
+					console.error("Error removing new file from storage:", storageError);
+				}
+			}
+			
 			// Just remove it from our state (it's not in the database yet)
 			setFileUrls(prev => prev.filter(f => f.url !== url));
 		}

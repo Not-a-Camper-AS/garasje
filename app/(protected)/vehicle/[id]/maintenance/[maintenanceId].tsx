@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, ScrollView, Pressable, Alert, Image, Linking, Modal, Dimensions, StatusBar } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, ScrollView, Pressable, Alert, Image, Linking, Modal, Dimensions, StatusBar, Platform } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/supabase-provider";
@@ -9,6 +9,8 @@ import { Text } from "@/components/ui/text";
 import { ArrowLeft, Calendar, DollarSign, Gauge, DropletIcon, Wrench, Battery, Fuel, Pencil, User, Trash2, FileText, ExternalLink, X, ChevronLeft, ChevronRight } from "lucide-react-native";
 import { format } from "date-fns";
 import ImageView from "react-native-image-viewing";
+import WebView from 'react-native-webview';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Get icon for maintenance type
 const getMaintenanceIcon = (type: string) => {
@@ -126,12 +128,120 @@ const Lightbox = ({
 	);
 };
 
-const FileDisplay = ({ url, onImagePress }: { url: string; onImagePress?: (url: string) => void }) => {
+// PDF Viewer Component using WebView
+const PdfViewer = ({ 
+	visible, 
+	url, 
+	onClose 
+}: { 
+	visible: boolean; 
+	url: string; 
+	onClose: () => void;
+}) => {
+	const insets = useSafeAreaInsets();
+	const [statusBarVisible, setStatusBarVisible] = useState(true);
+	
+	// Handle status bar on mount/unmount
+	useEffect(() => {
+		if (visible) {
+			setStatusBarVisible(false);
+		}
+		
+		return () => {
+			setStatusBarVisible(true);
+		};
+	}, [visible]);
+	
+	if (!visible) return null;
+
+	// Direct PDF URL with a simpler viewer
+	const viewerUrl = `https://drive.google.com/viewerng/viewer?embedded=true&url=${encodeURIComponent(url)}`;
+
+	// Calculate extra padding to avoid notches and system UI
+	const extraTopPadding = Platform.OS === 'ios' ? Math.max(insets.top, 44) : Math.max(insets.top, 30);
+	
+	return (
+		<Modal
+			visible={visible}
+			transparent={false}
+			animationType="slide"
+			onRequestClose={onClose}
+			statusBarTranslucent={true}
+		>
+			<StatusBar hidden={!statusBarVisible} />
+			<View style={{ flex: 1, backgroundColor: 'white', paddingTop: extraTopPadding }}>
+				{/* Enhanced header with larger tap areas */}
+				<View className="flex-row items-center justify-between p-4 border-b border-gray-200 bg-white">
+					<View className="flex-row items-center">
+						<Pressable 
+							onPress={onClose}
+							className="w-12 h-12 rounded-full items-center justify-center mr-3 bg-gray-100"
+							hitSlop={{ top: 15, right: 15, bottom: 15, left: 15 }}
+						>
+							<X size={26} color="#111" />
+						</Pressable>
+						<Text className="text-xl font-bold">PDF Viewer</Text>
+					</View>
+					
+					<Pressable 
+						onPress={() => Linking.openURL(url)}
+						className="px-4 py-2 bg-gray-100 rounded-full"
+					>
+						<Text className="font-medium">Open in Browser</Text>
+					</Pressable>
+				</View>
+				
+				<View className="flex-1">
+					<WebView
+						source={{ uri: viewerUrl }}
+						className="flex-1"
+						startInLoadingState={true}
+						onError={(syntheticEvent) => {
+							const { nativeEvent } = syntheticEvent;
+							console.error('WebView error:', nativeEvent);
+							Alert.alert('Error', 'Could not load PDF');
+							onClose();
+						}}
+						originWhitelist={['*']}
+						scalesPageToFit={true}
+						javaScriptEnabled={true}
+						domStorageEnabled={true}
+					/>
+				</View>
+				
+				{/* Custom bottom toolbar with larger buttons */}
+				<View className="flex-row justify-between items-center p-4 bg-white border-t border-gray-200">
+					<Pressable 
+						onPress={onClose}
+						className="px-6 py-3 bg-gray-100 rounded-full"
+					>
+						<Text className="font-medium">Close</Text>
+					</Pressable>
+					
+					<Pressable 
+						onPress={() => Linking.openURL(url)}
+						className="px-6 py-3 bg-[#22000A] rounded-full"
+					>
+						<Text className="font-medium text-white">Download</Text>
+					</Pressable>
+				</View>
+				
+				{/* Extra bottom padding for home indicator */}
+				<View style={{ height: Math.max(insets.bottom, 20) }} />
+			</View>
+		</Modal>
+	);
+};
+
+const FileDisplay = ({ url, onImagePress, onPdfPress }: { url: string; onImagePress?: (url: string) => void; onPdfPress?: (url: string) => void }) => {
 	const isImage = url.match(/\.(jpg|jpeg|png|gif|heic|webp)$/i);
+	const isPdf = url.match(/\.(pdf)$/i);
 
 	const handlePress = async () => {
 		if (isImage && onImagePress) {
 			onImagePress(url);
+		} else if (isPdf && onPdfPress) {
+			onPdfPress(url);
 		} else {
 			try {
 				await Linking.openURL(url);
@@ -153,10 +263,19 @@ const FileDisplay = ({ url, onImagePress }: { url: string; onImagePress?: (url: 
 					className="w-full h-full"
 					resizeMode="cover"
 				/>
-			) : (
+			) : isPdf ? (
 				<View className="w-full h-full items-center justify-center">
 					<FileText size={32} className="text-gray-400" />
 					<Text className="text-gray-500 mt-2">PDF dokument</Text>
+					<View className="flex-row items-center mt-2">
+						<Text className="text-[#22000A] mr-1">Vis PDF</Text>
+						<ExternalLink size={16} className="text-[#22000A]" />
+					</View>
+				</View>
+			) : (
+				<View className="w-full h-full items-center justify-center">
+					<FileText size={32} className="text-gray-400" />
+					<Text className="text-gray-500 mt-2">Dokument</Text>
 					<View className="flex-row items-center mt-2">
 						<Text className="text-[#22000A] mr-1">Åpne fil</Text>
 						<ExternalLink size={16} className="text-[#22000A]" />
@@ -180,10 +299,14 @@ export default function MaintenanceDetails() {
 	const { session } = useAuth();
 	const queryClient = useQueryClient();
 	
-	// State for lightbox
+	// State for lightbox and PDF viewer
 	const [lightboxVisible, setLightboxVisible] = useState(false);
 	const [imageIndex, setImageIndex] = useState(0);
 	const [galleryImages, setGalleryImages] = useState<{ uri: string }[]>([]);
+	
+	// State for PDF viewer
+	const [pdfViewerVisible, setPdfViewerVisible] = useState(false);
+	const [pdfUrl, setPdfUrl] = useState("");
 
 	const vehicle = useQuery({
 		queryKey: ["vehicle", vehicleId],
@@ -269,6 +392,12 @@ export default function MaintenanceDetails() {
 		setImageIndex(index >= 0 ? index : 0);
 		setLightboxVisible(true);
 	};
+	
+	// Function to handle PDF press
+	const handlePdfPress = (url: string) => {
+		setPdfUrl(url);
+		setPdfViewerVisible(true);
+	};
 
 	return (
 		<SafeAreaView className="flex-1 bg-white">
@@ -280,6 +409,13 @@ export default function MaintenanceDetails() {
 				onRequestClose={() => setLightboxVisible(false)}
 				swipeToCloseEnabled={true}
 				doubleTapToZoomEnabled={true}
+			/>
+			
+			{/* PDF Viewer */}
+			<PdfViewer
+				visible={pdfViewerVisible}
+				url={pdfUrl}
+				onClose={() => setPdfViewerVisible(false)}
 			/>
 			
 			<View className="flex-1">
@@ -362,6 +498,7 @@ export default function MaintenanceDetails() {
 									<FileDisplay 
 										url={maintenance.data.receipt_url} 
 										onImagePress={handleImagePress}
+										onPdfPress={handlePdfPress}
 									/>
 								</View>
 							)}
@@ -373,16 +510,14 @@ export default function MaintenanceDetails() {
 										Filer og bilder ({files.data.length})
 									</Text>
 									<View className="flex-row flex-wrap">
-										{files.data.map(file => {
-											console.log("Rendering file:", file.id, file.file_url);
-											return (
-												<FileDisplay 
-													key={file.id} 
-													url={file.file_url} 
-													onImagePress={handleImagePress}
-												/>
-											);
-										})}
+										{files.data.map(file => (
+											<FileDisplay 
+												key={file.id} 
+												url={file.file_url} 
+												onImagePress={handleImagePress}
+												onPdfPress={handlePdfPress}
+											/>
+										))}
 									</View>
 								</View>
 							)}

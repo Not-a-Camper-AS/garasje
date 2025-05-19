@@ -13,6 +13,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { format } from "date-fns";
 import { Alert, TextInput } from "react-native";
 import { FileUpload } from "@/components/ui/file-upload";
+import { supabase } from "@/config/supabase";
 
 const maintenanceTypes = [
 	{ id: "oil", label: "Oljeskift" },
@@ -228,14 +229,31 @@ export default function LogMaintenance() {
 						<Text className="text-sm font-medium text-gray-700 mb-2">
 							Kvittering eller bilde
 						</Text>
-						{/* Log before rendering FileUpload */}
 						<FileUpload
 							onUploadComplete={(url, path) => {
 								console.log("File uploaded with vehicleId:", vehicleId);
 								setFileUrls((prev) => [...prev, {url, path}]);
 							}}
 							onUploadError={(error) => Alert.alert("Feil", error)}
-							onRemove={(url) => setFileUrls((prev) => prev.filter((f) => f.url !== url))}
+							onRemove={(url) => {
+								// For new uploads that haven't been saved to the DB yet, we need to remove them from storage
+								const file = fileUrls.find(f => f.url === url);
+								if (file && file.path) {
+									console.log("Removing file from storage during creation:", file.path);
+									// Remove from Supabase Storage
+									supabase.storage
+										.from("maintenance")
+										.remove([file.path])
+										.then(() => {
+											console.log("File successfully removed from storage during creation");
+										})
+										.catch(error => {
+											console.error("Error removing file from storage during creation:", error);
+										});
+								}
+								// Remove from local state
+								setFileUrls((prev) => prev.filter((f) => f.url !== url));
+							}}
 							existingUrls={fileUrls.map(f => f.url)}
 							userId={String(session?.user.id)}
 							vehicleId={vehicleId as string}

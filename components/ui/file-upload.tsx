@@ -190,20 +190,16 @@ export function FileUpload({
 	};
 
 	const handleRemove = async (url: string) => {
+		// Call the parent component's onRemove handler
 		onRemove(url);
+		
+		// If there's a dedicated database removal function, use it
+		// This should already handle storage deletion
 		if (onRemoveFromDb) {
 			await onRemoveFromDb(url);
 		}
-		// Remove from Supabase Storage
-		try {
-			const path = url.split("/storage/v1/object/public/")[1];
-			if (path) {
-				console.log("Removing file from storage:", path);
-				await supabase.storage.from("maintenance").remove([path]);
-			}
-		} catch (error) {
-			console.error("Error deleting file from storage:", error);
-		}
+		// We don't need to manually delete from storage here
+		// as that's handled by the deleteMaintenanceFile function
 	};
 
 	const isImage = (url: string) => url.match(/\.(jpg|jpeg|png|gif|heic|webp)$/i);

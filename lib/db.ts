@@ -281,6 +281,54 @@ const updateMaintenance = async (
 };
 
 const deleteMaintenance = async (maintenanceId: string, userId: string) => {
+	// First, get all associated files to delete them from storage
+	const { data: files } = await supabase
+		.from("maintenance_files")
+		.select("id, file_url")
+		.eq("maintenance_id", maintenanceId)
+		.eq("user_id", userId);
+	
+	// Delete files from storage first
+	if (files && files.length > 0) {
+		console.log(`Deleting ${files.length} files for maintenance ID ${maintenanceId}`);
+		
+		// Process each file: delete from storage, then from database
+		for (const file of files) {
+			// Extract the storage path from the URL
+			if (file.file_url) {
+				const storagePath = file.file_url.split("/storage/v1/object/public/")[1];
+				if (storagePath) {
+					console.log("Removing file from storage:", storagePath);
+					// Remove from storage
+					const { error: storageError } = await supabase.storage
+						.from("maintenance")
+						.remove([storagePath]);
+					
+					if (storageError) {
+						console.error("Error removing file from storage:", storageError);
+					} else {
+						console.log("File successfully removed from storage");
+					}
+				}
+			}
+		}
+		
+		// Delete all files from the database in one call
+		const { error: filesDeleteError } = await supabase
+			.from("maintenance_files")
+			.delete()
+			.eq("maintenance_id", maintenanceId)
+			.eq("user_id", userId);
+		
+		if (filesDeleteError) {
+			console.error("Error deleting maintenance files:", filesDeleteError);
+			// Continue with maintenance deletion even if file deletion fails
+		} else {
+			console.log("All files deleted from database for maintenance ID:", maintenanceId);
+		}
+	}
+	
+	// Finally delete the maintenance record itself
 	const { error } = await supabase
 		.from("maintenance")
 		.delete()
@@ -289,6 +337,8 @@ const deleteMaintenance = async (maintenanceId: string, userId: string) => {
 		.throwOnError();
 
 	if (error) throw error;
+	
+	return true;
 };
 
 // Add a file to a maintenance record
@@ -346,13 +396,49 @@ const deleteMaintenanceFile = async (
 	fileId: string,
 	userId: string
 ) => {
+	// First get the file record to extract the URL
+	const { data: fileRecord, error: fetchError } = await supabase
+		.from("maintenance_files")
+		.select("file_url")
+		.eq("id", fileId)
+		.eq("user_id", userId)
+		.single();
+	
+	if (fetchError) {
+		console.error("Error fetching file record:", fetchError);
+		throw fetchError;
+	}
+	
+	// Extract the storage path from the URL
+	if (fileRecord && fileRecord.file_url) {
+		const storagePath = fileRecord.file_url.split("/storage/v1/object/public/")[1];
+		if (storagePath) {
+			console.log("Removing file from storage:", storagePath);
+			// Remove from storage
+			const { error: storageError } = await supabase.storage
+				.from("maintenance")
+				.remove([storagePath]);
+			
+			if (storageError) {
+				console.error("Error removing file from storage:", storageError);
+				// Continue with database deletion even if storage deletion fails
+			} else {
+				console.log("File successfully removed from storage");
+			}
+		}
+	}
+	
+	// Now delete the database record
 	const { error } = await supabase
 		.from("maintenance_files")
 		.delete()
 		.eq("id", fileId)
 		.eq("user_id", userId)
 		.throwOnError();
+	
 	if (error) throw error;
+	
+	return true;
 };
 
 export {
