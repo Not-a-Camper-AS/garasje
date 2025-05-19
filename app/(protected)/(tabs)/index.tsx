@@ -46,30 +46,11 @@ import {
 } from "lucide-react-native";
 import { ActionSheet } from "../../../components/action-sheet";
 import { useQuery } from "@tanstack/react-query";
-import { getTodos, getVehicles } from "@/lib/db";
+import { getTodos, getVehicles, getMaintenance } from "@/lib/db";
 import { useAuth } from "@/context/supabase-provider";
 
 // Animated components
 const AnimatedView = Animated.createAnimatedComponent(View);
-
-
-
-const mockCompletedTasks = [
-	{
-		id: "1",
-		title: "Byttet bremseklosser",
-		date: "2d",
-		rawDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-		icon: <Wrench size={14} className="text-green-600" />,
-	},
-	{
-		id: "2",
-		title: "Fylt spylervæske",
-		date: "1u",
-		rawDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 1 week ago
-		icon: <DropletIcon size={14} className="text-green-600" />,
-	},
-];
 
 // Mock notes data
 const mockNotes = [
@@ -178,6 +159,7 @@ const TaskItem = ({
 	rawDate,
 	onPress,
 	isLast = false,
+	isMaintenance = false,
 }: {
 	title: string;
 	date: string;
@@ -189,6 +171,7 @@ const TaskItem = ({
 	rawDate?: string | Date;
 	onPress?: () => void;
 	isLast?: boolean;
+	isMaintenance?: boolean;
 }) => {
 	// Format date if rawDate is provided, otherwise use the provided date string
 	const displayDate = rawDate ? formatRelativeDate(rawDate) : date;
@@ -198,7 +181,14 @@ const TaskItem = ({
 		if (onPress) {
 			onPress();
 		} else if (taskId && vehicleId) {
-			router.push(`/vehicle/${vehicleId}/tasks/${taskId}`);
+			if (isMaintenance) {
+				router.push({
+					pathname: "/vehicle/[id]/maintenance/[maintenanceId]",
+					params: { id: vehicleId, maintenanceId: taskId }
+				});
+			} else {
+				router.push(`/vehicle/${vehicleId}/tasks/${taskId}`);
+			}
 		}
 	};
 
@@ -290,11 +280,7 @@ export default function Home() {
 	// Query for completed tasks
 	const completedTasks = useQuery({
 		queryKey: ["completedTasks", currentVehicle?.id, currentIndex],
-		queryFn: () => {
-			// For now, using mock data as there's no completed tasks API yet
-			// In a real implementation, you would have a getCompletedTasks function
-			return Promise.resolve(mockCompletedTasks);
-		},
+		queryFn: () => getMaintenance(session?.user.id || "", currentVehicle?.id || ""),
 		enabled: !!currentVehicle?.id,
 	});
 
@@ -639,13 +625,14 @@ export default function Home() {
 												<TaskItem
 													key={task.id}
 													title={task.title}
-													date={task.date}
-													icon={task.icon}
+													date={formatRelativeDate(task.date_performed)}
+													icon={getTodoIcon(task.maintenance_type, true)}
 													color="bg-green-50"
 													textColor="text-green-700"
 													taskId={task.id}
 													vehicleId={item.id}
-													rawDate={task.rawDate}
+													rawDate={task.date_performed}
+													isMaintenance={true}
 													isLast={taskIndex === completedTasks.data.length - 1}
 												/>
 											))

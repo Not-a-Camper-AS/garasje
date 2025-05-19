@@ -193,6 +193,104 @@ const deleteVehicle = async (vehicleId: string) => {
 	if (error) throw error;
 };
 
+const getMaintenance = async (userId: string, vehicleId: string) => {
+	const { data, error } = await supabase
+		.from("maintenance")
+		.select("*")
+		.eq("user_id", userId)
+		.eq("vehicle_id", vehicleId)
+		.order("date_performed", { ascending: false })
+		.throwOnError();
+
+	if (error) throw error;
+	return data;
+};
+
+const getMaintenanceById = async (maintenanceId: string, userId: string) => {
+	const { data, error } = await supabase
+		.from("maintenance")
+		.select("*")
+		.eq("id", maintenanceId)
+		.eq("user_id", userId)
+		.single();
+
+	if (error) throw error;
+	return data;
+};
+
+const createMaintenance = async (
+	userId: string,
+	vehicleId: string,
+	maintenanceData: {
+		title: string;
+		description?: string;
+		maintenance_type: string;
+		cost?: number;
+		mileage?: number;
+		date_performed: string;
+		next_due_date?: string;
+		next_due_mileage?: number;
+		technician?: string;
+		receipt_url?: string;
+	},
+) => {
+	const { data, error } = await supabase
+		.from("maintenance")
+		.insert([
+			{
+				user_id: userId,
+				vehicle_id: vehicleId,
+				...maintenanceData,
+			},
+		])
+		.select()
+		.single()
+		.throwOnError();
+
+	if (error) throw error;
+	return data;
+};
+
+const updateMaintenance = async (
+	maintenanceId: string,
+	userId: string,
+	maintenanceData: {
+		title?: string;
+		description?: string;
+		maintenance_type?: string;
+		cost?: number;
+		mileage?: number;
+		date_performed?: string;
+		next_due_date?: string;
+		next_due_mileage?: number;
+		technician?: string;
+		receipt_url?: string;
+	},
+) => {
+	const { data, error } = await supabase
+		.from("maintenance")
+		.update(maintenanceData)
+		.eq("id", maintenanceId)
+		.eq("user_id", userId)
+		.select()
+		.single()
+		.throwOnError();
+
+	if (error) throw error;
+	return data;
+};
+
+const deleteMaintenance = async (maintenanceId: string, userId: string) => {
+	const { error } = await supabase
+		.from("maintenance")
+		.delete()
+		.eq("id", maintenanceId)
+		.eq("user_id", userId)
+		.throwOnError();
+
+	if (error) throw error;
+};
+
 export {
 	getTodos,
 	getVehicles,
@@ -205,4 +303,9 @@ export {
 	getVehicleById,
 	updateVehicle,
 	deleteVehicle,
+	getMaintenance,
+	getMaintenanceById,
+	createMaintenance,
+	updateMaintenance,
+	deleteMaintenance,
 };
