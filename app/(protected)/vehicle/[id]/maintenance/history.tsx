@@ -314,7 +314,7 @@ export default function MaintenanceHistory() {
 
 						{(!maintenance.data || maintenance.data.length === 0) && (
 							<View className="py-10 items-center">
-								<Text className="text-gray-500 text-center">Ingen vedlikeholdshistorikk</Text>
+								<Text className="text-gray-500 text-center">Ingen vedlikeholdshistorikk.</Text>
 							</View>
 						)}
 					</GestureHandlerRootView>
